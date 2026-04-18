@@ -20,12 +20,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.consignado.api.domain.consignment.ConsignmentService;
 import com.consignado.api.domain.consignment.dto.ConsignmentSummaryResponse;
+import com.consignado.api.domain.reseller.dto.ResellerBalanceResponse;
 import com.consignado.api.domain.reseller.dto.ResellerDocumentResponse;
 import com.consignado.api.domain.reseller.dto.ResellerFilterRequest;
 import com.consignado.api.domain.reseller.dto.ResellerRequest;
 import com.consignado.api.domain.reseller.dto.ResellerResponse;
 import com.consignado.api.domain.reseller.dto.ResellerSummaryResponse;
 import com.consignado.api.domain.reseller.dto.UpdateStatusRequest;
+import com.consignado.api.domain.settlement.SettlementService;
 import com.consignado.api.shared.response.ApiResponse;
 import com.consignado.api.shared.response.PageResponse;
 
@@ -39,6 +41,7 @@ public class ResellerController {
 
     private final ResellerService resellerService;
     private final ConsignmentService consignmentService;
+    private final SettlementService settlementService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ResellerSummaryResponse>>> findAll(
@@ -87,6 +90,11 @@ public class ResellerController {
     @GetMapping("/{id}/consignments")
     public ResponseEntity<ApiResponse<List<ConsignmentSummaryResponse>>> getConsignments(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.ok(consignmentService.findByReseller(id)));
+    }
+
+    @GetMapping("/{id}/balance")
+    public ResponseEntity<ApiResponse<ResellerBalanceResponse>> getBalance(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(settlementService.getResellerBalance(id)));
     }
 
     @PostMapping("/{id}/documents")

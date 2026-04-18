@@ -17,6 +17,10 @@ public interface ConsignmentRepository extends JpaRepository<Consignment, UUID>,
 
     List<Consignment> findByResellerIdAndTenantId(UUID resellerId, UUID tenantId);
 
+    List<Consignment> findByTenantIdAndStatusIn(UUID tenantId, List<String> statuses);
+
+    long countByTenantIdAndStatus(UUID tenantId, String status);
+
     @Modifying
     @Query("UPDATE Consignment c SET c.status = 'overdue' " +
            "WHERE c.status IN ('open', 'partially_settled') " +
