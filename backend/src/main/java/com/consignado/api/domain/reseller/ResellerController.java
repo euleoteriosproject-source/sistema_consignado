@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.consignado.api.domain.consignment.ConsignmentService;
+import com.consignado.api.domain.consignment.dto.ConsignmentSummaryResponse;
 import com.consignado.api.domain.reseller.dto.ResellerDocumentResponse;
 import com.consignado.api.domain.reseller.dto.ResellerFilterRequest;
 import com.consignado.api.domain.reseller.dto.ResellerRequest;
@@ -36,6 +38,7 @@ import lombok.RequiredArgsConstructor;
 public class ResellerController {
 
     private final ResellerService resellerService;
+    private final ConsignmentService consignmentService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ResellerSummaryResponse>>> findAll(
@@ -82,9 +85,8 @@ public class ResellerController {
     }
 
     @GetMapping("/{id}/consignments")
-    public ResponseEntity<ApiResponse<List<?>>> getConsignments(@PathVariable UUID id) {
-        // Implemented in Sprint 4
-        return ResponseEntity.ok(ApiResponse.ok(List.of()));
+    public ResponseEntity<ApiResponse<List<ConsignmentSummaryResponse>>> getConsignments(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(consignmentService.findByReseller(id)));
     }
 
     @PostMapping("/{id}/documents")
