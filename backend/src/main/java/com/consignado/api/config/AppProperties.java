@@ -6,7 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record AppProperties(
     String frontendUrl,
     SupabaseProperties supabase,
-    JwtProperties jwt
+    JwtProperties jwt,
+    StripeProperties stripe
 ) {
 
     public record SupabaseProperties(
@@ -19,5 +20,10 @@ public record AppProperties(
 
     public record JwtProperties(
         String secret
+    ) {}
+
+    public record StripeProperties(
+        String secretKey,
+        String webhookSecret
     ) {}
 }

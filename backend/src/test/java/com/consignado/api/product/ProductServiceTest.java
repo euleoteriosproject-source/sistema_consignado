@@ -24,6 +24,8 @@ import com.consignado.api.domain.product.ProductImageRepository;
 import com.consignado.api.domain.product.ProductRepository;
 import com.consignado.api.domain.product.ProductService;
 import com.consignado.api.domain.product.dto.ProductRequest;
+import com.consignado.api.domain.tenant.Tenant;
+import com.consignado.api.domain.tenant.TenantRepository;
 import com.consignado.api.multitenancy.TenantContext;
 import com.consignado.api.shared.exception.BusinessException;
 import com.consignado.api.shared.exception.ResourceNotFoundException;
@@ -34,6 +36,7 @@ class ProductServiceTest {
 
     @Mock private ProductRepository productRepository;
     @Mock private ProductImageRepository imageRepository;
+    @Mock private TenantRepository tenantRepository;
     @Mock private SupabaseStorageService storageService;
     @InjectMocks private ProductService productService;
 
@@ -42,6 +45,8 @@ class ProductServiceTest {
 
     @Test
     void create_withDuplicateCode_throwsBusinessException() {
+        when(tenantRepository.findById(TENANT_ID)).thenReturn(Optional.of(buildTenant("premium")));
+        when(productRepository.countByTenantIdAndDeletedAtIsNull(TENANT_ID)).thenReturn(0L);
         when(productRepository.existsByCodeAndTenantId(any(), any())).thenReturn(true);
         var request = buildRequest("P001");
 
@@ -54,6 +59,8 @@ class ProductServiceTest {
 
     @Test
     void create_withInvalidCategory_throwsBusinessException() {
+        when(tenantRepository.findById(TENANT_ID)).thenReturn(Optional.of(buildTenant("premium")));
+        when(productRepository.countByTenantIdAndDeletedAtIsNull(TENANT_ID)).thenReturn(0L);
         var request = new ProductRequest("Anel ouro", "INVALIDO", new BigDecimal("50.00"),
             null, null, null, null, null);
 
@@ -66,6 +73,8 @@ class ProductServiceTest {
 
     @Test
     void create_withValidData_setsStockAvailableEqualToStockTotal() throws Exception {
+        when(tenantRepository.findById(TENANT_ID)).thenReturn(Optional.of(buildTenant("premium")));
+        when(productRepository.countByTenantIdAndDeletedAtIsNull(TENANT_ID)).thenReturn(0L);
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         var request = buildRequestWithStock(10);
 
@@ -122,6 +131,15 @@ class ProductServiceTest {
                 () -> ScopedValue.runWhere(TenantContext.USER_ID, USER_ID,
                     () -> ScopedValue.runWhere(TenantContext.ROLE, "owner",
                         () -> productService.update(id, request)))));
+    }
+
+    private Tenant buildTenant(String plan) {
+        var tenant = new Tenant();
+        tenant.setId(TENANT_ID);
+        tenant.setName("Test Tenant");
+        tenant.setSlug("test");
+        tenant.setPlan(plan);
+        return tenant;
     }
 
     private ProductRequest buildRequest(String code) {

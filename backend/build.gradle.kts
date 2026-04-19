@@ -42,6 +42,7 @@ val jjwtVersion = "0.12.6"
 val okhttpVersion = "4.12.0"
 val poiVersion = "5.3.0"
 val testcontainersVersion = "1.20.4"
+val stripeVersion = "26.3.0"
 
 dependencies {
     // Spring Boot starters
@@ -78,6 +79,9 @@ dependencies {
 
     // Apache POI para XLSX
     implementation("org.apache.poi:poi-ooxml:$poiVersion")
+
+    // Stripe billing
+    implementation("com.stripe:stripe-java:$stripeVersion")
 
     // Jackson
     implementation("com.fasterxml.jackson.module:jackson-module-parameter-names")

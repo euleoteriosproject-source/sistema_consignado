@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.consignado.api.domain.billing.TenantPlan;
 import com.consignado.api.domain.product.dto.ProductFilterRequest;
 import com.consignado.api.domain.product.dto.ProductImageResponse;
 import com.consignado.api.domain.product.dto.ProductRequest;
@@ -23,6 +24,7 @@ import com.consignado.api.domain.product.dto.ProductResponse;
 import com.consignado.api.domain.product.dto.ProductSummaryResponse;
 import com.consignado.api.domain.product.dto.ProductTrackingResponse;
 import com.consignado.api.domain.product.dto.UpdateProductStatusRequest;
+import com.consignado.api.domain.tenant.TenantRepository;
 import com.consignado.api.multitenancy.TenantContext;
 import com.consignado.api.shared.exception.BusinessException;
 import com.consignado.api.shared.exception.ResourceNotFoundException;
@@ -39,6 +41,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ProductImageRepository imageRepository;
+    private final TenantRepository tenantRepository;
     private final SupabaseStorageService storageService;
 
     private static final Set<String> VALID_CATEGORIES = Set.of(
@@ -49,6 +52,16 @@ public class ProductService {
     public ProductResponse create(ProductRequest request) {
         var tenantId = TenantContext.TENANT_ID.get();
         log.info("Creating product for tenant={}", tenantId);
+
+        var tenant = tenantRepository.findById(tenantId)
+            .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantId));
+        var plan = TenantPlan.from(tenant.getPlan());
+        var currentCount = productRepository.countByTenantIdAndDeletedAtIsNull(tenantId);
+        if (currentCount >= plan.getMaxProducts()) {
+            throw new BusinessException(
+                "Limite de produtos atingido para o plano " + plan.getValue() +
+                " (" + plan.getMaxProducts() + "). Faça upgrade do plano para adicionar mais.");
+        }
 
         validateCategory(request.category());
 

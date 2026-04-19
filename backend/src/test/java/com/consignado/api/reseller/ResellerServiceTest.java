@@ -22,6 +22,8 @@ import com.consignado.api.domain.reseller.ResellerDocumentRepository;
 import com.consignado.api.domain.reseller.ResellerRepository;
 import com.consignado.api.domain.reseller.ResellerService;
 import com.consignado.api.domain.reseller.dto.ResellerRequest;
+import com.consignado.api.domain.tenant.Tenant;
+import com.consignado.api.domain.tenant.TenantRepository;
 import com.consignado.api.domain.user.User;
 import com.consignado.api.domain.user.UserRepository;
 import com.consignado.api.multitenancy.TenantContext;
@@ -35,6 +37,7 @@ class ResellerServiceTest {
     @Mock private ResellerRepository resellerRepository;
     @Mock private ResellerDocumentRepository documentRepository;
     @Mock private UserRepository userRepository;
+    @Mock private TenantRepository tenantRepository;
     @Mock private SupabaseStorageService storageService;
     @InjectMocks private ResellerService resellerService;
 
@@ -44,6 +47,8 @@ class ResellerServiceTest {
 
     @Test
     void create_withDuplicateCpf_throwsBusinessException() {
+        when(tenantRepository.findById(TENANT_ID)).thenReturn(Optional.of(buildTenant("premium")));
+        when(resellerRepository.countByTenantIdAndDeletedAtIsNull(TENANT_ID)).thenReturn(0L);
         when(resellerRepository.existsByCpfAndTenantId(any(), any())).thenReturn(true);
         var request = buildRequest("12345678901");
 
@@ -56,6 +61,8 @@ class ResellerServiceTest {
 
     @Test
     void create_withValidData_returnsResponse() throws Exception {
+        when(tenantRepository.findById(TENANT_ID)).thenReturn(Optional.of(buildTenant("premium")));
+        when(resellerRepository.countByTenantIdAndDeletedAtIsNull(TENANT_ID)).thenReturn(0L);
         when(userRepository.findById(MANAGER_ID)).thenReturn(Optional.of(buildManager()));
         when(resellerRepository.save(any())).thenReturn(buildReseller("Ana Silva"));
         var request = buildRequest(null);
@@ -109,6 +116,15 @@ class ResellerServiceTest {
                 })));
 
         verify(resellerRepository).save(argThat(r -> "inactive".equals(r.getStatus())));
+    }
+
+    private Tenant buildTenant(String plan) {
+        var tenant = new Tenant();
+        tenant.setId(TENANT_ID);
+        tenant.setName("Test Tenant");
+        tenant.setSlug("test");
+        tenant.setPlan(plan);
+        return tenant;
     }
 
     private ResellerRequest buildRequest(String cpf) {

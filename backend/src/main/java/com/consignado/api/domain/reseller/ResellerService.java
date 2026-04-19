@@ -15,11 +15,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.consignado.api.domain.billing.TenantPlan;
 import com.consignado.api.domain.reseller.dto.ResellerDocumentResponse;
 import com.consignado.api.domain.reseller.dto.ResellerFilterRequest;
 import com.consignado.api.domain.reseller.dto.ResellerRequest;
 import com.consignado.api.domain.reseller.dto.ResellerResponse;
 import com.consignado.api.domain.reseller.dto.ResellerSummaryResponse;
+import com.consignado.api.domain.tenant.TenantRepository;
 import com.consignado.api.domain.user.User;
 import com.consignado.api.domain.user.UserRepository;
 import com.consignado.api.multitenancy.TenantContext;
@@ -39,12 +41,23 @@ public class ResellerService {
     private final ResellerRepository resellerRepository;
     private final ResellerDocumentRepository documentRepository;
     private final UserRepository userRepository;
+    private final TenantRepository tenantRepository;
     private final SupabaseStorageService storageService;
 
     @Transactional
     public ResellerResponse create(ResellerRequest request) {
         var tenantId = TenantContext.TENANT_ID.get();
         log.info("Creating reseller for tenant={}", tenantId);
+
+        var tenant = tenantRepository.findById(tenantId)
+            .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantId));
+        var plan = TenantPlan.from(tenant.getPlan());
+        var currentCount = resellerRepository.countByTenantIdAndDeletedAtIsNull(tenantId);
+        if (currentCount >= plan.getMaxResellers()) {
+            throw new BusinessException(
+                "Limite de revendedoras atingido para o plano " + plan.getValue() +
+                " (" + plan.getMaxResellers() + "). Faça upgrade do plano para adicionar mais.");
+        }
 
         if (request.cpf() != null && !request.cpf().isBlank()) {
             if (resellerRepository.existsByCpfAndTenantId(request.cpf(), tenantId)) {

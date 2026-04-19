@@ -11,4 +11,6 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
     boolean existsByCodeAndTenantId(String code, UUID tenantId);
 
     Optional<Product> findByIdAndDeletedAtIsNull(UUID id);
+
+    long countByTenantIdAndDeletedAtIsNull(UUID tenantId);
 }

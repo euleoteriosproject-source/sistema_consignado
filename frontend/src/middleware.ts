@@ -29,7 +29,12 @@ export async function middleware(request: NextRequest) {
 
   const isAuthPage = request.nextUrl.pathname.startsWith("/login");
   const isDashboard = request.nextUrl.pathname.startsWith("/dashboard") ||
-    request.nextUrl.pathname === "/";
+    request.nextUrl.pathname.startsWith("/revendedoras") ||
+    request.nextUrl.pathname.startsWith("/produtos") ||
+    request.nextUrl.pathname.startsWith("/consignados") ||
+    request.nextUrl.pathname.startsWith("/financeiro") ||
+    request.nextUrl.pathname.startsWith("/relatorios") ||
+    request.nextUrl.pathname.startsWith("/configuracoes");
 
   if (!user && isDashboard) {
     const url = request.nextUrl.clone();
