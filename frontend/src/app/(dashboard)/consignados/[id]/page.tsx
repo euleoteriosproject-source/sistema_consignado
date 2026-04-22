@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { consignmentsApi } from "@/lib/api/consignments";
 import { settlementsApi } from "@/lib/api/settlements";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,6 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { MovementModal } from "@/components/consignments/MovementModal";
 import { PostMovementSettlementDialog } from "@/components/consignments/PostMovementSettlementDialog";
 import { CloseConsignmentModal } from "@/components/consignments/CloseConsignmentModal";
-import { toast } from "sonner";
 import type { SettlementOfferData } from "@/components/consignments/MovementModal";
 import type { Consignment, ConsignmentItem, PageResponse, Settlement } from "@/types";
 
@@ -242,7 +241,6 @@ function TimelineNode({
 export default function ConsignmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [movementOpen, setMovementOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [settlementOffer, setSettlementOffer] = useState<SettlementOfferData | null>(null);
