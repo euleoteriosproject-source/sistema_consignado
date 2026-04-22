@@ -8,11 +8,13 @@ spring:
   flyway:
     enabled: true
 
-  data:
-    redis:
-      url: redis://localhost:6379
-      ssl:
-        enabled: false
+  cache:
+    type: simple
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
 logging:
   level:

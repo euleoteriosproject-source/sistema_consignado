@@ -1,6 +1,8 @@
 package com.consignado.api.domain.product.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public record ProductTrackingResponse(
@@ -10,5 +12,19 @@ public record ProductTrackingResponse(
     int stockTotal,
     int stockAvailable,
     int stockOnConsignment,
-    BigDecimal totalConsignedValue
-) {}
+    int totalSold,
+    int totalReturned,
+    int totalLost,
+    BigDecimal totalConsignedValue,
+    List<ConsignmentLocation> locations
+) {
+    public record ConsignmentLocation(
+        UUID consignmentId,
+        UUID resellerId,
+        String resellerName,
+        UUID managerId,
+        String managerName,
+        int quantityOnConsignment,
+        LocalDate deliveredAt
+    ) {}
+}

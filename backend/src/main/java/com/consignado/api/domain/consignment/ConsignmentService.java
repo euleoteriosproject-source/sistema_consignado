@@ -16,7 +16,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.consignado.api.domain.consignment.dto.BatchMovementRequest;
 import com.consignado.api.domain.consignment.dto.ConsignmentFilterRequest;
+import com.consignado.api.domain.consignment.dto.ConsignmentItemMovementResponse;
 import com.consignado.api.domain.consignment.dto.ConsignmentItemRequest;
 import com.consignado.api.domain.consignment.dto.ConsignmentItemResponse;
 import com.consignado.api.domain.consignment.dto.ConsignmentRequest;
@@ -45,6 +47,7 @@ public class ConsignmentService {
 
     private final ConsignmentRepository consignmentRepository;
     private final ConsignmentItemRepository itemRepository;
+    private final ConsignmentItemMovementRepository movementRepository;
     private final ResellerRepository resellerRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
@@ -58,6 +61,10 @@ public class ConsignmentService {
         var reseller = resellerRepository.findByIdAndDeletedAtIsNull(request.resellerId())
             .filter(r -> r.getTenantId().equals(tenantId))
             .orElseThrow(() -> new ResourceNotFoundException("Revendedora", request.resellerId()));
+
+        if (!"active".equalsIgnoreCase(reseller.getStatus())) {
+            throw new BusinessException("Não é possível criar lote para revendedor(a) inativo(a). Ative o cadastro primeiro.");
+        }
 
         // Validate all products and stock before persisting anything
         Map<UUID, Product> productMap = new HashMap<>();
@@ -122,15 +129,37 @@ public class ConsignmentService {
 
         var resellerIds = page.stream().map(Consignment::getResellerId).collect(Collectors.toSet());
         var managerIds  = page.stream().map(Consignment::getManagerId).collect(Collectors.toSet());
+        var consignmentIds = page.stream().map(Consignment::getId).toList();
 
         Map<UUID, String> resellers = resellerRepository.findAllById(resellerIds).stream()
             .collect(Collectors.toMap(Reseller::getId, Reseller::getName));
         Map<UUID, String> managers = userRepository.findAllById(managerIds).stream()
             .collect(Collectors.toMap(User::getId, User::getName));
 
+        Map<UUID, Integer> totalItemsMap = new HashMap<>();
+        Map<UUID, Integer> totalSoldMap   = new HashMap<>();
+        Map<UUID, Integer> totalReturnedMap = new HashMap<>();
+        Map<UUID, Integer> totalLostMap   = new HashMap<>();
+        Map<UUID, BigDecimal> totalValuesMap = new HashMap<>();
+        if (!consignmentIds.isEmpty()) {
+            for (var row : itemRepository.aggregateTotalsByConsignmentIds(consignmentIds)) {
+                UUID cid = (UUID) row[0];
+                totalItemsMap.put(cid, ((Number) row[1]).intValue());
+                totalSoldMap.put(cid, ((Number) row[2]).intValue());
+                totalReturnedMap.put(cid, ((Number) row[3]).intValue());
+                totalLostMap.put(cid, ((Number) row[4]).intValue());
+                totalValuesMap.put(cid, (BigDecimal) row[5]);
+            }
+        }
+
         return page.map(c -> toSummary(c,
             resellers.getOrDefault(c.getResellerId(), ""),
-            managers.getOrDefault(c.getManagerId(), "")));
+            managers.getOrDefault(c.getManagerId(), ""),
+            totalItemsMap.getOrDefault(c.getId(), 0),
+            totalSoldMap.getOrDefault(c.getId(), 0),
+            totalReturnedMap.getOrDefault(c.getId(), 0),
+            totalLostMap.getOrDefault(c.getId(), 0),
+            totalValuesMap.getOrDefault(c.getId(), BigDecimal.ZERO)));
     }
 
     @Transactional(readOnly = true)
@@ -147,9 +176,87 @@ public class ConsignmentService {
         Map<UUID, String> managers = userRepository.findAllById(managerIds).stream()
             .collect(Collectors.toMap(User::getId, User::getName));
 
+        var ids = consignments.stream().map(Consignment::getId).toList();
+        Map<UUID, Integer> totalItemsMap    = new HashMap<>();
+        Map<UUID, Integer> totalSoldMap     = new HashMap<>();
+        Map<UUID, Integer> totalReturnedMap = new HashMap<>();
+        Map<UUID, Integer> totalLostMap     = new HashMap<>();
+        Map<UUID, BigDecimal> totalValuesMap = new HashMap<>();
+        if (!ids.isEmpty()) {
+            for (var row : itemRepository.aggregateTotalsByConsignmentIds(ids)) {
+                UUID cid = (UUID) row[0];
+                totalItemsMap.put(cid, ((Number) row[1]).intValue());
+                totalSoldMap.put(cid, ((Number) row[2]).intValue());
+                totalReturnedMap.put(cid, ((Number) row[3]).intValue());
+                totalLostMap.put(cid, ((Number) row[4]).intValue());
+                totalValuesMap.put(cid, (BigDecimal) row[5]);
+            }
+        }
+
         return consignments.stream()
-            .map(c -> toSummary(c, resellerName, managers.getOrDefault(c.getManagerId(), "")))
+            .map(c -> toSummary(c, resellerName, managers.getOrDefault(c.getManagerId(), ""),
+                totalItemsMap.getOrDefault(c.getId(), 0),
+                totalSoldMap.getOrDefault(c.getId(), 0),
+                totalReturnedMap.getOrDefault(c.getId(), 0),
+                totalLostMap.getOrDefault(c.getId(), 0),
+                totalValuesMap.getOrDefault(c.getId(), BigDecimal.ZERO)))
             .toList();
+    }
+
+    @Transactional
+    public ConsignmentResponse registerBatchMovement(UUID consignmentId, BatchMovementRequest request) {
+        var tenantId = TenantContext.TENANT_ID.get();
+        var consignment = resolveConsignment(consignmentId, tenantId);
+
+        if ("settled".equals(consignment.getStatus())) {
+            throw new BusinessException("Consignado já encerrado");
+        }
+
+        for (var movement : request.movements()) {
+            if (movement.quantitySold() == 0 && movement.quantityReturned() == 0 && movement.quantityLost() == 0) {
+                continue;
+            }
+            var item = resolveItem(movement.itemId(), consignmentId, tenantId);
+            int avail = remaining(item);
+
+            int total = movement.quantitySold() + movement.quantityReturned() + movement.quantityLost();
+            if (total > avail) {
+                throw new BusinessException("Total de movimentações excede saldo disponível do item: " + movement.itemId());
+            }
+
+            if (movement.quantitySold() > 0) {
+                item.setQuantitySold(item.getQuantitySold() + movement.quantitySold());
+                saveMovement(tenantId, consignmentId, item.getId(), "sold", movement.quantitySold());
+            }
+            if (movement.quantityReturned() > 0) {
+                item.setQuantityReturned(item.getQuantityReturned() + movement.quantityReturned());
+                var product = productRepository.findById(item.getProductId()).orElseThrow();
+                product.setStockAvailable(product.getStockAvailable() + movement.quantityReturned());
+                productRepository.save(product);
+                saveMovement(tenantId, consignmentId, item.getId(), "returned", movement.quantityReturned());
+            }
+            if (movement.quantityLost() > 0) {
+                item.setQuantityLost(item.getQuantityLost() + movement.quantityLost());
+                saveMovement(tenantId, consignmentId, item.getId(), "lost", movement.quantityLost());
+            }
+
+            updateItemStatus(item);
+            itemRepository.save(item);
+        }
+
+        updateConsignmentStatus(consignment);
+        consignmentRepository.save(consignment);
+
+        // When batch movement fully settles the consignment, finalize stockTotal
+        // (normally done by settle(), but settle() may be skipped or the status may already be "settled")
+        if ("settled".equals(consignment.getStatus())) {
+            finalizeStockTotals(consignmentId);
+        }
+
+        var items = itemRepository.findByConsignmentId(consignmentId);
+        var reseller = resellerRepository.findById(consignment.getResellerId()).orElseThrow();
+        log.info("Batch movement registered consignmentId={}", consignmentId);
+        return toResponse(consignment, reseller, items, loadProductMap(items));
     }
 
     @Transactional
@@ -168,8 +275,12 @@ public class ConsignmentService {
         var tenantId = TenantContext.TENANT_ID.get();
         var consignment = resolveConsignment(consignmentId, tenantId);
 
+        // Idempotent: if already settled (e.g. batch movement settled it first), return silently
         if ("settled".equals(consignment.getStatus())) {
-            throw new BusinessException("Consignado já encerrado");
+            var existingItems = itemRepository.findByConsignmentId(consignmentId);
+            var reseller = resellerRepository.findById(consignment.getResellerId()).orElseThrow();
+            log.info("Consignment already settled id={}, returning current state", consignmentId);
+            return toResponse(consignment, reseller, existingItems, loadProductMap(existingItems));
         }
 
         var items = itemRepository.findByConsignmentId(consignmentId);
@@ -223,6 +334,7 @@ public class ConsignmentService {
                 item.setQuantitySold(item.getQuantitySold() + e.quantity());
                 updateItemStatus(item);
                 itemRepository.save(item);
+                saveMovement(tenantId, consignmentId, item.getId(), "sold", e.quantity());
             }
             case ItemReturned e -> {
                 var item = resolveItem(e.itemId(), consignmentId, tenantId);
@@ -235,6 +347,7 @@ public class ConsignmentService {
                 var product = productRepository.findById(item.getProductId()).orElseThrow();
                 product.setStockAvailable(product.getStockAvailable() + e.quantity());
                 productRepository.save(product);
+                saveMovement(tenantId, consignmentId, item.getId(), "returned", e.quantity());
             }
             case ItemLost e -> {
                 var item = resolveItem(e.itemId(), consignmentId, tenantId);
@@ -244,6 +357,7 @@ public class ConsignmentService {
                 item.setQuantityLost(item.getQuantityLost() + e.quantity());
                 updateItemStatus(item);
                 itemRepository.save(item);
+                saveMovement(tenantId, consignmentId, item.getId(), "lost", e.quantity());
             }
             default -> throw new BusinessException("Evento de consignado inválido");
         }
@@ -355,11 +469,14 @@ public class ConsignmentService {
         );
     }
 
-    private ConsignmentSummaryResponse toSummary(Consignment c, String resellerName, String managerName) {
+    private ConsignmentSummaryResponse toSummary(Consignment c, String resellerName, String managerName,
+                                                  int totalItems, int totalSold, int totalReturned,
+                                                  int totalLost, BigDecimal totalValue) {
         return new ConsignmentSummaryResponse(
             c.getId(), c.getResellerId(), resellerName,
             c.getManagerId(), managerName,
             c.getDeliveredAt(), c.getExpectedReturnAt(), c.getStatus(),
+            totalItems, totalSold, totalReturned, totalLost, totalValue,
             c.getCreatedAt(), c.getUpdatedAt()
         );
     }
@@ -372,6 +489,11 @@ public class ConsignmentService {
             .multiply(item.getCommissionRate())
             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
+        var movements = movementRepository.findByItemIdOrderByCreatedAtAsc(item.getId()).stream()
+            .map(m -> new ConsignmentItemMovementResponse(
+                m.getId(), m.getMovementType(), m.getQuantity(), m.getNotes(), m.getCreatedAt()))
+            .toList();
+
         return new ConsignmentItemResponse(
             item.getId(),
             item.getProductId(),
@@ -380,7 +502,28 @@ public class ConsignmentService {
             item.getQuantitySent(), item.getQuantitySold(),
             item.getQuantityReturned(), item.getQuantityLost(),
             item.getSalePrice(), item.getCommissionRate(), item.getStatus(),
-            soldValue, commissionValue
+            soldValue, commissionValue, movements
         );
+    }
+
+    private void finalizeStockTotals(UUID consignmentId) {
+        for (var item : itemRepository.findByConsignmentId(consignmentId)) {
+            int soldAndLost = item.getQuantitySold() + item.getQuantityLost();
+            if (soldAndLost > 0) {
+                var product = productRepository.findById(item.getProductId()).orElseThrow();
+                product.setStockTotal(Math.max(0, product.getStockTotal() - soldAndLost));
+                productRepository.save(product);
+            }
+        }
+    }
+
+    private void saveMovement(UUID tenantId, UUID consignmentId, UUID itemId, String type, int quantity) {
+        var m = new ConsignmentItemMovement();
+        m.setTenantId(tenantId);
+        m.setConsignmentId(consignmentId);
+        m.setItemId(itemId);
+        m.setMovementType(type);
+        m.setQuantity(quantity);
+        movementRepository.save(m);
     }
 }

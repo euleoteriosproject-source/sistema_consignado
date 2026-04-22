@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.consignado.api.domain.consignment.dto.BatchMovementRequest;
 import com.consignado.api.domain.consignment.dto.ConsignmentFilterRequest;
 import com.consignado.api.domain.consignment.dto.ConsignmentRequest;
 import com.consignado.api.domain.consignment.dto.ConsignmentResponse;
@@ -64,9 +65,9 @@ public class ConsignmentController {
     @PostMapping("/{id}/movements")
     public ResponseEntity<ApiResponse<ConsignmentResponse>> registerMovement(
         @PathVariable UUID id,
-        @Valid @RequestBody MovementRequest request
+        @Valid @RequestBody BatchMovementRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(consignmentService.registerMovement(id, request)));
+        return ResponseEntity.ok(ApiResponse.ok(consignmentService.registerBatchMovement(id, request)));
     }
 
     @PostMapping("/{id}/settle")

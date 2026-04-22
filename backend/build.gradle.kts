@@ -101,3 +101,22 @@ tasks.withType<Test> {
 tasks.getByName<BootJar>("bootJar") {
     archiveFileName.set("app.jar")
 }
+
+// Carrega .env e ativa perfil dev ao rodar localmente
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    val envFile = file("${projectDir}/.env")
+    if (envFile.exists()) {
+        envFile.readLines().forEach { line ->
+            val trimmed = line.trim()
+            if (trimmed.isNotBlank() && !trimmed.startsWith("#")) {
+                val eqIdx = trimmed.indexOf('=')
+                if (eqIdx > 0) {
+                    val key = trimmed.substring(0, eqIdx).trim()
+                    val value = trimmed.substring(eqIdx + 1).trim()
+                    environment(key, value)
+                }
+            }
+        }
+    }
+    systemProperty("spring.profiles.active", "dev")
+}

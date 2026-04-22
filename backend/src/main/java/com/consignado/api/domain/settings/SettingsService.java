@@ -8,13 +8,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.consignado.api.domain.settings.dto.CreateManagerRequest;
 import com.consignado.api.domain.settings.dto.ManagerResponse;
+import com.consignado.api.domain.settings.dto.ProfileResponse;
 import com.consignado.api.domain.settings.dto.TenantSettingsRequest;
 import com.consignado.api.domain.settings.dto.TenantSettingsResponse;
+import com.consignado.api.domain.settings.dto.UpdateProfileRequest;
 import com.consignado.api.domain.tenant.Tenant;
 import com.consignado.api.domain.tenant.TenantRepository;
 import com.consignado.api.domain.user.User;
 import com.consignado.api.domain.user.UserRepository;
 import com.consignado.api.multitenancy.TenantContext;
+import com.consignado.api.security.SupabaseAuthAdminService;
 import com.consignado.api.shared.exception.BusinessException;
 import com.consignado.api.shared.exception.ResourceNotFoundException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -32,6 +35,7 @@ public class SettingsService {
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final SupabaseAuthAdminService supabaseAuthAdminService;
 
     @Transactional(readOnly = true)
     public TenantSettingsResponse getSettings() {
@@ -42,7 +46,7 @@ public class SettingsService {
     @Transactional
     public TenantSettingsResponse updateSettings(TenantSettingsRequest request) {
         var tenant = loadTenant();
-        tenant.setName(request.name());
+        if (request.name() != null && !request.name().isBlank()) tenant.setName(request.name());
         if (request.logoUrl() != null)     tenant.setLogoUrl(request.logoUrl());
         if (request.primaryColor() != null) tenant.setPrimaryColor(request.primaryColor());
 
@@ -78,9 +82,12 @@ public class SettingsService {
             throw new BusinessException("E-mail já cadastrado neste tenant");
         }
 
+        // Cria conta no Supabase Auth com a senha fornecida
+        UUID supabaseUid = supabaseAuthAdminService.createUser(request.email(), request.password());
+
         var user = new User();
         user.setTenantId(tenantId);
-        user.setSupabaseUid(UUID.randomUUID()); // placeholder — real flow uses Supabase invite
+        user.setSupabaseUid(supabaseUid);
         user.setName(request.name());
         user.setEmail(request.email());
         user.setPhone(request.phone());
@@ -90,6 +97,26 @@ public class SettingsService {
         var saved = userRepository.save(user);
         log.info("Manager created id={} tenant={}", saved.getId(), tenantId);
         return toManagerResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public ProfileResponse getProfile() {
+        var userId = TenantContext.USER_ID.get();
+        var user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuário", userId));
+        return new ProfileResponse(user.getId(), user.getName(), user.getEmail(), user.getPhone(), user.getRole());
+    }
+
+    @Transactional
+    public ProfileResponse updateProfile(UpdateProfileRequest request) {
+        var userId = TenantContext.USER_ID.get();
+        var user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuário", userId));
+        if (request.name() != null && !request.name().isBlank()) user.setName(request.name());
+        if (request.phone() != null) user.setPhone(request.phone());
+        userRepository.save(user);
+        log.info("Profile updated userId={}", userId);
+        return new ProfileResponse(user.getId(), user.getName(), user.getEmail(), user.getPhone(), user.getRole());
     }
 
     @Transactional
@@ -117,9 +144,15 @@ public class SettingsService {
         };
     }
 
+    private static final String DEFAULT_SETTINGS =
+        "{\"default_commission_rate\":30,\"default_return_days\":30,\"block_new_lot_if_overdue\":true}";
+
     private String buildSettingsJson(Tenant tenant, TenantSettingsRequest request) {
         try {
-            ObjectNode node = (ObjectNode) objectMapper.readTree(tenant.getSettings());
+            String raw = (tenant.getSettings() != null && !tenant.getSettings().isBlank())
+                ? tenant.getSettings() : DEFAULT_SETTINGS;
+            JsonNode parsed = objectMapper.readTree(raw);
+            ObjectNode node = parsed instanceof ObjectNode on ? on : objectMapper.createObjectNode();
             if (request.defaultCommissionRate() != null)
                 node.put("default_commission_rate", request.defaultCommissionRate());
             if (request.defaultReturnDays() != null)
@@ -128,8 +161,8 @@ public class SettingsService {
                 node.put("block_new_lot_if_overdue", request.blockNewLotIfOverdue());
             return objectMapper.writeValueAsString(node);
         } catch (Exception e) {
-            log.warn("Failed to parse settings JSON, keeping original: {}", e.getMessage());
-            return tenant.getSettings();
+            log.warn("Failed to parse settings JSON, resetting to defaults: {}", e.getMessage());
+            return DEFAULT_SETTINGS;
         }
     }
 

@@ -41,17 +41,30 @@ public class DashboardService {
     private final ResellerRepository resellerRepository;
     private final UserRepository userRepository;
 
-    @Cacheable(value = "dashboard-summary", key = "#tenantId.toString()")
+    @Cacheable(value = "dashboard-summary-v2", key = "#tenantId.toString() + ':' + (#managerId != null ? #managerId.toString() : 'owner')")
     @Transactional(readOnly = true)
-    public DashboardSummaryResponse getSummary(UUID tenantId) {
-        log.info("Computing dashboard summary for tenant={}", tenantId);
+    public DashboardSummaryResponse getSummary(UUID tenantId, UUID managerId) {
+        boolean isManager = managerId != null;
+        log.info("Computing dashboard summary for tenant={} manager={}", tenantId, managerId);
 
-        long openCount = consignmentRepository.countByTenantIdAndStatus(tenantId, "open")
-            + consignmentRepository.countByTenantIdAndStatus(tenantId, "partially_settled");
-        long overdueCount = consignmentRepository.countByTenantIdAndStatus(tenantId, "overdue");
+        long activeResellers = isManager
+            ? resellerRepository.countByManagerIdAndStatusAndDeletedAtIsNull(managerId, "active")
+            : resellerRepository.countByTenantIdAndStatusAndDeletedAtIsNull(tenantId, "active");
+
+        long openCount = isManager
+            ? consignmentRepository.countByManagerIdAndStatus(managerId, "open")
+                + consignmentRepository.countByManagerIdAndStatus(managerId, "partially_settled")
+            : consignmentRepository.countByTenantIdAndStatus(tenantId, "open")
+                + consignmentRepository.countByTenantIdAndStatus(tenantId, "partially_settled");
+
+        long overdueCount = isManager
+            ? consignmentRepository.countByManagerIdAndStatus(managerId, "overdue")
+            : consignmentRepository.countByTenantIdAndStatus(tenantId, "overdue");
 
         var activeStatuses = List.of("open", "partially_settled", "overdue");
-        var activeConsignments = consignmentRepository.findByTenantIdAndStatusIn(tenantId, activeStatuses);
+        var activeConsignments = isManager
+            ? consignmentRepository.findByManagerIdAndStatusIn(managerId, activeStatuses)
+            : consignmentRepository.findByTenantIdAndStatusIn(tenantId, activeStatuses);
         var activeIds = activeConsignments.stream().map(Consignment::getId).toList();
 
         var totalOpenValue = BigDecimal.ZERO;
@@ -71,13 +84,16 @@ public class DashboardService {
         }
 
         var now = LocalDate.now();
-        var totalSettledThisMonth = settlementRepository
-            .findByTenantIdAndSettlementDateBetween(tenantId, now.withDayOfMonth(1), now)
-            .stream()
+        var allSettlements = settlementRepository
+            .findByTenantIdAndSettlementDateBetween(tenantId, now.withDayOfMonth(1), now);
+        var filteredSettlements = isManager
+            ? allSettlements.stream().filter(s -> managerId.equals(s.getManagerId())).toList()
+            : allSettlements;
+        var totalSettledThisMonth = filteredSettlements.stream()
             .map(Settlement::getNetToReceive)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new DashboardSummaryResponse(openCount, overdueCount, totalItems, totalOpenValue, totalSettledThisMonth);
+        return new DashboardSummaryResponse(activeResellers, openCount, overdueCount, totalItems, totalOpenValue, totalSettledThisMonth);
     }
 
     @Cacheable(value = "dashboard-tree", key = "#tenantId.toString()")
@@ -138,7 +154,7 @@ public class DashboardService {
         )).toList();
     }
 
-    @Cacheable(value = "dashboard-charts", key = "#tenantId.toString() + ':' + #period")
+    @Cacheable(value = "dashboard-charts-v2", key = "#tenantId.toString() + ':' + #period")
     @Transactional(readOnly = true)
     public DashboardChartResponse getCharts(UUID tenantId, String period) {
         var now = LocalDate.now();

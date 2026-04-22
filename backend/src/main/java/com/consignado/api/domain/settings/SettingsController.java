@@ -15,9 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.consignado.api.domain.settings.dto.CreateManagerRequest;
 import com.consignado.api.domain.settings.dto.ManagerResponse;
+import com.consignado.api.domain.settings.dto.ProfileResponse;
 import com.consignado.api.domain.settings.dto.TenantSettingsRequest;
 import com.consignado.api.domain.settings.dto.TenantSettingsResponse;
 import com.consignado.api.domain.settings.dto.UpdateManagerStatusRequest;
+import com.consignado.api.domain.settings.dto.UpdateProfileRequest;
 import com.consignado.api.multitenancy.TenantContext;
 import com.consignado.api.shared.exception.ForbiddenException;
 import com.consignado.api.shared.response.ApiResponse;
@@ -44,6 +46,18 @@ public class SettingsController {
     ) {
         requireOwner();
         return ResponseEntity.ok(ApiResponse.ok(settingsService.updateSettings(request)));
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<ProfileResponse>> getProfile() {
+        return ResponseEntity.ok(ApiResponse.ok(settingsService.getProfile()));
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<ProfileResponse>> updateProfile(
+        @RequestBody UpdateProfileRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(settingsService.updateProfile(request)));
     }
 
     @GetMapping("/managers")

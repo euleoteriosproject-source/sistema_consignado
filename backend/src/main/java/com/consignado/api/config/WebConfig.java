@@ -3,8 +3,8 @@ package com.consignado.api.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -15,18 +15,21 @@ public class WebConfig {
     private final AppProperties appProperties;
 
     @Bean
-    public CorsFilter corsFilter() {
+    public CorsConfigurationSource corsConfigurationSource() {
         var config = new CorsConfiguration();
-        config.addAllowedOrigin(appProperties.frontendUrl());
-        config.addAllowedOrigin("http://localhost:3000");
+        // allowedOriginPatterns suporta wildcard E funciona com allowCredentials=true
+        config.addAllowedOriginPattern("http://localhost:*");
+        config.addAllowedOriginPattern("http://192.168.*.*:*");
+        config.addAllowedOriginPattern("http://10.*.*.*:*");
+        config.addAllowedOriginPattern("http://172.*.*.*:*");
+        config.addAllowedOriginPattern(appProperties.frontendUrl());
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
         var source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", config);
-
-        return new CorsFilter(source);
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

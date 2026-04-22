@@ -1,5 +1,6 @@
 package com.consignado.api.domain.consignment.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -13,6 +14,11 @@ public record ConsignmentSummaryResponse(
     LocalDate deliveredAt,
     LocalDate expectedReturnAt,
     String status,
+    int totalItems,
+    int totalSold,
+    int totalReturned,
+    int totalLost,
+    BigDecimal totalValue,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {}

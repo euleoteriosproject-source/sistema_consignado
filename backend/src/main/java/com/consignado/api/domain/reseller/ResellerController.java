@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.consignado.api.domain.consignment.ConsignmentService;
 import com.consignado.api.domain.consignment.dto.ConsignmentSummaryResponse;
 import com.consignado.api.domain.reseller.dto.ResellerBalanceResponse;
+import com.consignado.api.domain.reseller.dto.ResellerCompletenessResponse;
 import com.consignado.api.domain.reseller.dto.ResellerDocumentResponse;
 import com.consignado.api.domain.reseller.dto.ResellerFilterRequest;
 import com.consignado.api.domain.reseller.dto.ResellerRequest;
@@ -85,6 +86,11 @@ public class ResellerController {
     ) {
         resellerService.updateStatus(id, request.status());
         return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @GetMapping("/{id}/completeness")
+    public ResponseEntity<ApiResponse<ResellerCompletenessResponse>> getCompleteness(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(resellerService.getCompleteness(id)));
     }
 
     @GetMapping("/{id}/consignments")

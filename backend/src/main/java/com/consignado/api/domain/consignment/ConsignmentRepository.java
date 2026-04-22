@@ -1,6 +1,7 @@
 package com.consignado.api.domain.consignment;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,6 +21,12 @@ public interface ConsignmentRepository extends JpaRepository<Consignment, UUID>,
     List<Consignment> findByTenantIdAndStatusIn(UUID tenantId, List<String> statuses);
 
     long countByTenantIdAndStatus(UUID tenantId, String status);
+
+    List<Consignment> findByManagerIdAndStatusIn(UUID managerId, List<String> statuses);
+
+    List<Consignment> findByResellerIdInAndStatusIn(Collection<UUID> resellerIds, List<String> statuses);
+
+    long countByManagerIdAndStatus(UUID managerId, String status);
 
     @Modifying
     @Query("UPDATE Consignment c SET c.status = 'overdue' " +

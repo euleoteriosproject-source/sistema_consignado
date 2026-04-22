@@ -17,6 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.consignado.api.domain.billing.TenantPlan;
+import com.consignado.api.domain.consignment.Consignment;
+import com.consignado.api.domain.consignment.ConsignmentItem;
+import com.consignado.api.domain.consignment.ConsignmentItemRepository;
+import com.consignado.api.domain.consignment.ConsignmentRepository;
 import com.consignado.api.domain.product.dto.ProductFilterRequest;
 import com.consignado.api.domain.product.dto.ProductImageResponse;
 import com.consignado.api.domain.product.dto.ProductRequest;
@@ -24,7 +28,11 @@ import com.consignado.api.domain.product.dto.ProductResponse;
 import com.consignado.api.domain.product.dto.ProductSummaryResponse;
 import com.consignado.api.domain.product.dto.ProductTrackingResponse;
 import com.consignado.api.domain.product.dto.UpdateProductStatusRequest;
+import com.consignado.api.domain.reseller.Reseller;
+import com.consignado.api.domain.reseller.ResellerRepository;
 import com.consignado.api.domain.tenant.TenantRepository;
+import com.consignado.api.domain.user.User;
+import com.consignado.api.domain.user.UserRepository;
 import com.consignado.api.multitenancy.TenantContext;
 import com.consignado.api.shared.exception.BusinessException;
 import com.consignado.api.shared.exception.ResourceNotFoundException;
@@ -43,6 +51,10 @@ public class ProductService {
     private final ProductImageRepository imageRepository;
     private final TenantRepository tenantRepository;
     private final SupabaseStorageService storageService;
+    private final ConsignmentItemRepository consignmentItemRepository;
+    private final ConsignmentRepository consignmentRepository;
+    private final ResellerRepository resellerRepository;
+    private final UserRepository userRepository;
 
     private static final Set<String> VALID_CATEGORIES = Set.of(
         "anel", "colar", "brinco", "pulseira", "tornozeleira", "conjunto", "outro"
@@ -154,14 +166,58 @@ public class ProductService {
     public ProductTrackingResponse getTracking(UUID id) {
         var tenantId = TenantContext.TENANT_ID.get();
         var product = resolveProduct(id, tenantId);
-        int onConsignment = product.getStockTotal() - product.getStockAvailable();
+
+        var items = consignmentItemRepository.findByProductIdAndTenantId(id, tenantId);
+        var activeItems = items.stream()
+            .filter(i -> {
+                int remaining = i.getQuantitySent() - i.getQuantitySold()
+                    - i.getQuantityReturned() - i.getQuantityLost();
+                return remaining > 0;
+            }).toList();
+
+        int onConsignment = activeItems.stream()
+            .mapToInt(i -> i.getQuantitySent() - i.getQuantitySold()
+                - i.getQuantityReturned() - i.getQuantityLost())
+            .sum();
+        int totalSold = items.stream().mapToInt(ConsignmentItem::getQuantitySold).sum();
+        int totalReturned = items.stream().mapToInt(ConsignmentItem::getQuantityReturned).sum();
+        int totalLost = items.stream().mapToInt(ConsignmentItem::getQuantityLost).sum();
         BigDecimal totalConsignedValue = product.getSalePrice()
             .multiply(BigDecimal.valueOf(onConsignment))
             .setScale(2, RoundingMode.HALF_UP);
+
+        var consignmentIds = activeItems.stream().map(ConsignmentItem::getConsignmentId).collect(Collectors.toSet());
+        Map<UUID, Consignment> consignmentMap = consignmentIds.isEmpty() ? Map.of()
+            : consignmentRepository.findAllById(consignmentIds).stream()
+                .collect(Collectors.toMap(Consignment::getId, c -> c));
+
+        var resellerIds = consignmentMap.values().stream().map(Consignment::getResellerId).collect(Collectors.toSet());
+        var managerIds = consignmentMap.values().stream().map(Consignment::getManagerId).collect(Collectors.toSet());
+        Map<UUID, String> resellerNames = resellerRepository.findAllById(resellerIds).stream()
+            .collect(Collectors.toMap(Reseller::getId, Reseller::getName));
+        Map<UUID, String> managerNames = userRepository.findAllById(managerIds).stream()
+            .collect(Collectors.toMap(User::getId, User::getName));
+
+        var locations = activeItems.stream()
+            .filter(i -> consignmentMap.containsKey(i.getConsignmentId()))
+            .map(i -> {
+                var c = consignmentMap.get(i.getConsignmentId());
+                int qty = i.getQuantitySent() - i.getQuantitySold()
+                    - i.getQuantityReturned() - i.getQuantityLost();
+                return new ProductTrackingResponse.ConsignmentLocation(
+                    c.getId(), c.getResellerId(),
+                    resellerNames.getOrDefault(c.getResellerId(), ""),
+                    c.getManagerId(),
+                    managerNames.getOrDefault(c.getManagerId(), ""),
+                    qty, c.getDeliveredAt()
+                );
+            }).toList();
+
         return new ProductTrackingResponse(
             product.getId(), product.getCode(), product.getName(),
             product.getStockTotal(), product.getStockAvailable(),
-            onConsignment, totalConsignedValue
+            onConsignment, totalSold, totalReturned, totalLost,
+            totalConsignedValue, locations
         );
     }
 

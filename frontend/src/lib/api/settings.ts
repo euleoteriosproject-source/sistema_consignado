@@ -1,10 +1,13 @@
 import { apiFetch } from "./client";
-import type { TenantSettings, Manager } from "@/types";
+import type { TenantSettings, Manager, UserProfile } from "@/types";
 
 export const settingsApi = {
   get: () => apiFetch<TenantSettings>("/api/v1/settings"),
   update: (data: unknown) =>
     apiFetch<TenantSettings>("/api/v1/settings", { method: "PUT", body: JSON.stringify(data) }),
+  profile: () => apiFetch<UserProfile>("/api/v1/settings/profile"),
+  updateProfile: (data: { name?: string; phone?: string }) =>
+    apiFetch<UserProfile>("/api/v1/settings/profile", { method: "PUT", body: JSON.stringify(data) }),
   managers: () => apiFetch<Manager[]>("/api/v1/settings/managers"),
   createManager: (data: unknown) =>
     apiFetch<Manager>("/api/v1/settings/managers", { method: "POST", body: JSON.stringify(data) }),

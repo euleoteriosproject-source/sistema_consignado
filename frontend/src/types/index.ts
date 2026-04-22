@@ -24,6 +24,7 @@ export interface ResellerSummary {
   status: "active" | "inactive" | "blocked";
   openConsignments: number;
   openValue: number;
+  pendingReceivable: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,6 +64,15 @@ export interface ResellerBalance {
   lastSettlementDate: string | null;
 }
 
+export interface ResellerDocument {
+  id: string;
+  type: string;
+  storagePath: string;
+  fileName: string | null;
+  publicUrl: string | null;
+  uploadedAt: string;
+}
+
 // ---- products ----
 export interface ProductImage {
   id: string;
@@ -94,6 +104,16 @@ export interface Product extends ProductSummary {
   updatedAt: string;
 }
 
+export interface ProductConsignmentLocation {
+  consignmentId: string;
+  resellerId: string;
+  resellerName: string;
+  managerId: string;
+  managerName: string;
+  quantityOnConsignment: number;
+  deliveredAt: string;
+}
+
 export interface ProductTracking {
   id: string;
   code: string | null;
@@ -101,10 +121,22 @@ export interface ProductTracking {
   stockTotal: number;
   stockAvailable: number;
   stockOnConsignment: number;
+  totalSold: number;
+  totalReturned: number;
+  totalLost: number;
   totalConsignedValue: number;
+  locations: ProductConsignmentLocation[];
 }
 
 // ---- consignments ----
+export interface ConsignmentItemMovement {
+  id: string;
+  movementType: "sold" | "returned" | "lost" | "settle";
+  quantity: number;
+  notes: string | null;
+  createdAt: string;
+}
+
 export interface ConsignmentItem {
   id: string;
   productId: string;
@@ -119,6 +151,7 @@ export interface ConsignmentItem {
   status: "pending" | "partially_settled" | "settled";
   soldValue: number;
   commissionValue: number;
+  movements: ConsignmentItemMovement[];
 }
 
 export interface ConsignmentSummary {
@@ -131,6 +164,9 @@ export interface ConsignmentSummary {
   expectedReturnAt: string | null;
   status: "open" | "partially_settled" | "settled" | "overdue";
   totalItems: number;
+  totalSold: number;
+  totalReturned: number;
+  totalLost: number;
   totalValue: number;
   createdAt: string;
   updatedAt: string;
@@ -165,6 +201,7 @@ export interface SettlementsSummary {
   totalSoldValue: number;
   totalCommission: number;
   totalNetReceived: number;
+  totalPendingReceivable: number;
 }
 
 // ---- dashboard ----
@@ -215,6 +252,11 @@ export interface DashboardTree {
   managers: DashboardManagerNode[];
 }
 
+export interface ResellerCompleteness {
+  complete: boolean;
+  missing: string[];
+}
+
 // ---- settings ----
 export interface TenantSettings {
   id: string;
@@ -237,4 +279,12 @@ export interface Manager {
   phone: string | null;
   active: boolean;
   createdAt: string;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string;
 }

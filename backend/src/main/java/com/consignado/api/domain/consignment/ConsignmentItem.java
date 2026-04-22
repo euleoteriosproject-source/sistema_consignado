@@ -4,9 +4,6 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
-import org.hibernate.type.descriptor.java.UUIDJavaType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,7 +14,6 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "consignment_items")
-@FilterDef(name = "tenantFilter", parameters = @ParamDef(name = "tenantId", type = UUIDJavaType.class))
 @Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 public class ConsignmentItem {
 

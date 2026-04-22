@@ -1,6 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { dashboardApi } from "@/lib/api/dashboard";
+import { useAuthStore } from "@/stores/authStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +13,9 @@ import { Users, ShoppingBag, DollarSign, AlertTriangle } from "lucide-react";
 import type { DashboardSummary, DashboardAlert, DashboardChartData } from "@/types";
 
 export default function DashboardPage() {
+  const role = useAuthStore((s) => s.role);
+  const isOwner = role === "owner";
+
   const { data: summary, isLoading: loadingSummary } = useQuery<DashboardSummary>({
     queryKey: ["dashboard-summary"],
     queryFn: dashboardApi.summary,
@@ -28,12 +32,15 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        {!isOwner && <p className="text-sm text-muted-foreground">Visão dos seus revendedores(as)</p>}
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          title="Revendedoras Ativas"
+          title={isOwner ? "Revendedores(as) Ativas" : "Revendedores(as)"}
           value={summary?.activeResellers}
           icon={<Users className="h-4 w-4 text-muted-foreground" />}
           loading={loadingSummary}
@@ -65,7 +72,7 @@ export default function DashboardPage() {
             <CardTitle>Acertos por Mês</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={220} className="md:!h-[300px]">
               <AreaChart data={charts.monthlySales}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />

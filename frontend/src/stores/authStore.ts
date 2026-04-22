@@ -6,7 +6,12 @@ interface AuthState {
   session: Session | null;
   role: string | null;
   tenantId: string | null;
+  tenantName: string | null;
+  userName: string | null;
   setSession: (session: Session | null) => void;
+  setRole: (role: string) => void;
+  setTenantName: (name: string) => void;
+  setUserName: (name: string) => void;
   clearSession: () => void;
 }
 
@@ -15,12 +20,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   session: null,
   role: null,
   tenantId: null,
+  tenantName: null,
+  userName: null,
   setSession: (session) =>
     set({
       session,
       user: session?.user ?? null,
-      role: (session?.user?.app_metadata?.role as string) ?? null,
-      tenantId: (session?.user?.app_metadata?.tenant_id as string) ?? null,
     }),
-  clearSession: () => set({ session: null, user: null, role: null, tenantId: null }),
+  setRole: (role) => set({ role }),
+  setTenantName: (name) => set({ tenantName: name }),
+  setUserName: (name) => set({ userName: name }),
+  clearSession: () => set({ session: null, user: null, role: null, tenantId: null, tenantName: null, userName: null }),
 }));

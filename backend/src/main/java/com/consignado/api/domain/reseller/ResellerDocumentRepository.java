@@ -11,4 +11,6 @@ public interface ResellerDocumentRepository extends JpaRepository<ResellerDocume
     List<ResellerDocument> findByResellerId(UUID resellerId);
 
     Optional<ResellerDocument> findByIdAndTenantId(UUID id, UUID tenantId);
+
+    long countByResellerId(UUID resellerId);
 }

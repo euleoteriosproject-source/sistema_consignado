@@ -12,7 +12,8 @@ public record TenantUserDetails(
     UUID tenantId,
     UUID userId,
     String email,
-    String role
+    String role,
+    String name
 ) implements UserDetails {
 
     @Override

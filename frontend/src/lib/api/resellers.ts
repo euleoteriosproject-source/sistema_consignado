@@ -1,5 +1,5 @@
-import { apiFetch } from "./client";
-import type { PageResponse, Reseller, ResellerSummary, ResellerBalance, ConsignmentSummary } from "@/types";
+import { apiFetch, apiUpload } from "./client";
+import type { PageResponse, Reseller, ResellerSummary, ResellerBalance, ConsignmentSummary, ResellerDocument, ResellerCompleteness } from "@/types";
 
 export const resellersApi = {
   list: (params?: Record<string, string>) => {
@@ -18,4 +18,10 @@ export const resellersApi = {
   consignments: (id: string) =>
     apiFetch<ConsignmentSummary[]>(`/api/v1/resellers/${id}/consignments`),
   balance: (id: string) => apiFetch<ResellerBalance>(`/api/v1/resellers/${id}/balance`),
+  uploadDocument: (id: string, formData: FormData) =>
+    apiUpload(`/api/v1/resellers/${id}/documents`, formData),
+  listDocuments: (id: string) => apiFetch<ResellerDocument[]>(`/api/v1/resellers/${id}/documents`),
+  deleteDocument: (id: string, docId: string) =>
+    apiFetch<void>(`/api/v1/resellers/${id}/documents/${docId}`, { method: "DELETE" }),
+  completeness: (id: string) => apiFetch<ResellerCompleteness>(`/api/v1/resellers/${id}/completeness`),
 };

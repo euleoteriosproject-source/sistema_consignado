@@ -1,6 +1,7 @@
 package com.consignado.api.domain.consignment.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 public record ConsignmentItemResponse(
@@ -16,5 +17,6 @@ public record ConsignmentItemResponse(
     BigDecimal commissionRate,
     String status,
     BigDecimal soldValue,
-    BigDecimal commissionValue
+    BigDecimal commissionValue,
+    List<ConsignmentItemMovementResponse> movements
 ) {}

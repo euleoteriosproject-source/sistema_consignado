@@ -59,7 +59,11 @@ public class SettlementService {
         BigDecimal totalSoldValue;
         BigDecimal totalCommission;
 
-        if (request.consignmentId() != null) {
+        if (request.totalSoldValue() != null && request.totalCommission() != null) {
+            // Explicit values provided (allow linking consignmentId for tracking without recalculating)
+            totalSoldValue = request.totalSoldValue();
+            totalCommission = request.totalCommission();
+        } else if (request.consignmentId() != null) {
             var items = itemRepository.findByConsignmentId(request.consignmentId());
             totalSoldValue = items.stream()
                 .map(i -> i.getSalePrice().multiply(BigDecimal.valueOf(i.getQuantitySold())))
@@ -71,11 +75,7 @@ public class SettlementService {
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         } else {
-            if (request.totalSoldValue() == null || request.totalCommission() == null) {
-                throw new BusinessException("totalSoldValue e totalCommission são obrigatórios");
-            }
-            totalSoldValue = request.totalSoldValue();
-            totalCommission = request.totalCommission();
+            throw new BusinessException("totalSoldValue e totalCommission são obrigatórios");
         }
 
         var netToReceive = totalSoldValue.subtract(totalCommission);
@@ -112,11 +112,36 @@ public class SettlementService {
         var role = TenantContext.ROLE.get();
         var userId = TenantContext.USER_ID.get();
         var settlements = settlementRepository.findAll(buildSpec(filter, tenantId, role, userId));
+
+        // Include ALL consignment statuses so settled-but-unacertado consignments are counted
+        var allStatuses = List.of("open", "partially_settled", "overdue", "settled");
+        List<com.consignado.api.domain.consignment.Consignment> relevantConsignments =
+            "manager".equalsIgnoreCase(role)
+                ? consignmentRepository.findByManagerIdAndStatusIn(userId, allStatuses)
+                : consignmentRepository.findByTenantIdAndStatusIn(tenantId, allStatuses);
+        var allIds = relevantConsignments.stream().map(Consignment::getId).toList();
+
+        BigDecimal totalPendingReceivable = BigDecimal.ZERO;
+        if (!allIds.isEmpty()) {
+            BigDecimal netSold = BigDecimal.ZERO;
+            for (var row : itemRepository.aggregateSoldValueByConsignmentIds(allIds)) {
+                BigDecimal gross = row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO;
+                BigDecimal commission = row[2] != null ? (BigDecimal) row[2] : BigDecimal.ZERO;
+                netSold = netSold.add(gross.subtract(commission));
+            }
+            BigDecimal alreadySettled = BigDecimal.ZERO;
+            for (var row : settlementRepository.sumNetToReceiveByConsignmentIds(allIds)) {
+                if (row[1] != null) alreadySettled = alreadySettled.add((BigDecimal) row[1]);
+            }
+            totalPendingReceivable = netSold.subtract(alreadySettled).max(BigDecimal.ZERO);
+        }
+
         return new SettlementsSummaryResponse(
             settlements.size(),
             settlements.stream().map(Settlement::getTotalSoldValue).reduce(BigDecimal.ZERO, BigDecimal::add),
             settlements.stream().map(Settlement::getTotalCommission).reduce(BigDecimal.ZERO, BigDecimal::add),
-            settlements.stream().map(Settlement::getNetToReceive).reduce(BigDecimal.ZERO, BigDecimal::add)
+            settlements.stream().map(Settlement::getNetToReceive).reduce(BigDecimal.ZERO, BigDecimal::add),
+            totalPendingReceivable
         );
     }
 
@@ -169,7 +194,15 @@ public class SettlementService {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("tenantId"), tenantId));
             if ("manager".equalsIgnoreCase(role)) {
-                predicates.add(cb.equal(root.get("managerId"), userId));
+                var sub = query.subquery(UUID.class);
+                var resellerRoot = sub.from(com.consignado.api.domain.reseller.Reseller.class);
+                sub.select(resellerRoot.get("id"))
+                   .where(
+                       cb.equal(resellerRoot.get("managerId"), userId),
+                       cb.equal(resellerRoot.get("tenantId"), tenantId),
+                       cb.isNull(resellerRoot.get("deletedAt"))
+                   );
+                predicates.add(root.get("resellerId").in(sub));
             }
             if (f.resellerId() != null) {
                 predicates.add(cb.equal(root.get("resellerId"), f.resellerId()));

@@ -6,5 +6,6 @@ public record SettlementsSummaryResponse(
     long totalSettlements,
     BigDecimal totalSoldValue,
     BigDecimal totalCommission,
-    BigDecimal totalNetReceived
+    BigDecimal totalNetReceived,
+    BigDecimal totalPendingReceivable
 ) {}

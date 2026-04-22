@@ -2,6 +2,7 @@ package com.consignado.api.domain.reseller;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.consignado.api.domain.billing.TenantPlan;
+import com.consignado.api.domain.consignment.Consignment;
+import com.consignado.api.domain.consignment.ConsignmentItemRepository;
+import com.consignado.api.domain.consignment.ConsignmentRepository;
+import com.consignado.api.domain.settlement.SettlementRepository;
+import com.consignado.api.domain.reseller.dto.ResellerCompletenessResponse;
 import com.consignado.api.domain.reseller.dto.ResellerDocumentResponse;
 import com.consignado.api.domain.reseller.dto.ResellerFilterRequest;
 import com.consignado.api.domain.reseller.dto.ResellerRequest;
@@ -43,6 +49,9 @@ public class ResellerService {
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
     private final SupabaseStorageService storageService;
+    private final ConsignmentRepository consignmentRepository;
+    private final ConsignmentItemRepository consignmentItemRepository;
+    private final SettlementRepository settlementRepository;
 
     @Transactional
     public ResellerResponse create(ResellerRequest request) {
@@ -71,6 +80,7 @@ public class ResellerService {
 
         var reseller = new Reseller();
         reseller.setTenantId(tenantId);
+        reseller.setStatus("inactive");
         mapRequestToEntity(request, reseller);
 
         var saved = resellerRepository.save(reseller);
@@ -105,7 +115,53 @@ public class ResellerService {
         Map<UUID, String> managers = userRepository.findAllById(managerIds).stream()
             .collect(Collectors.toMap(User::getId, User::getName));
 
-        return page.map(r -> toSummary(r, managers.getOrDefault(r.getManagerId(), "")));
+        var resellerIds = page.stream().map(Reseller::getId).collect(Collectors.toSet());
+        var openStatuses = List.of("open", "partially_settled", "overdue");
+        var openConsignments = resellerIds.isEmpty() ? List.<Consignment>of()
+            : consignmentRepository.findByResellerIdInAndStatusIn(resellerIds, openStatuses);
+
+        Map<UUID, Integer> openCountMap = openConsignments.stream()
+            .collect(Collectors.groupingBy(Consignment::getResellerId,
+                Collectors.collectingAndThen(Collectors.counting(), Long::intValue)));
+
+        var openConsignmentIds = openConsignments.stream().map(Consignment::getId).toList();
+        Map<UUID, BigDecimal> consignmentValueMap = new HashMap<>();
+        Map<UUID, BigDecimal> netSoldByConsignment = new HashMap<>();
+        if (!openConsignmentIds.isEmpty()) {
+            for (var row : consignmentItemRepository.aggregateTotalsByConsignmentIds(openConsignmentIds)) {
+                consignmentValueMap.put((UUID) row[0], row[5] != null ? (BigDecimal) row[5] : BigDecimal.ZERO);
+            }
+            for (var row : consignmentItemRepository.aggregateSoldValueByConsignmentIds(openConsignmentIds)) {
+                BigDecimal gross = row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO;
+                BigDecimal commission = row[2] != null ? (BigDecimal) row[2] : BigDecimal.ZERO;
+                netSoldByConsignment.put((UUID) row[0], gross.subtract(commission));
+            }
+        }
+        Map<UUID, BigDecimal> settledByConsignment = new HashMap<>();
+        if (!openConsignmentIds.isEmpty()) {
+            for (var row : settlementRepository.sumNetToReceiveByConsignmentIds(openConsignmentIds)) {
+                if (row[0] != null && row[1] != null) {
+                    settledByConsignment.put((UUID) row[0], (BigDecimal) row[1]);
+                }
+            }
+        }
+        Map<UUID, BigDecimal> openValueMap = new HashMap<>();
+        Map<UUID, BigDecimal> pendingReceivableMap = new HashMap<>();
+        for (var c : openConsignments) {
+            openValueMap.merge(c.getResellerId(),
+                consignmentValueMap.getOrDefault(c.getId(), BigDecimal.ZERO),
+                BigDecimal::add);
+            BigDecimal netSold = netSoldByConsignment.getOrDefault(c.getId(), BigDecimal.ZERO);
+            BigDecimal settled = settledByConsignment.getOrDefault(c.getId(), BigDecimal.ZERO);
+            pendingReceivableMap.merge(c.getResellerId(),
+                netSold.subtract(settled).max(BigDecimal.ZERO),
+                BigDecimal::add);
+        }
+
+        return page.map(r -> toSummary(r, managers.getOrDefault(r.getManagerId(), ""),
+            openCountMap.getOrDefault(r.getId(), 0),
+            openValueMap.getOrDefault(r.getId(), BigDecimal.ZERO),
+            pendingReceivableMap.getOrDefault(r.getId(), BigDecimal.ZERO)));
     }
 
     @Transactional
@@ -144,9 +200,48 @@ public class ResellerService {
             throw new BusinessException("Status inválido: " + status);
         }
 
+        if ("active".equalsIgnoreCase(status)) {
+            var completeness = buildCompleteness(reseller);
+            if (!completeness.complete()) {
+                throw new BusinessException(
+                    "Cadastro incompleto. Pendências: " + String.join(", ", completeness.missing()));
+            }
+        }
+
         reseller.setStatus(status.toLowerCase());
         resellerRepository.save(reseller);
         log.info("Reseller status updated id={} status={}", id, status);
+    }
+
+    @Transactional(readOnly = true)
+    public ResellerCompletenessResponse getCompleteness(UUID id) {
+        var tenantId = TenantContext.TENANT_ID.get();
+        var reseller = resellerRepository.findByIdAndDeletedAtIsNull(id)
+            .filter(r -> r.getTenantId().equals(tenantId))
+            .orElseThrow(() -> new ResourceNotFoundException("Revendedora", id));
+        return buildCompleteness(reseller);
+    }
+
+    private ResellerCompletenessResponse buildCompleteness(Reseller reseller) {
+        var missing = new ArrayList<String>();
+        if (isBlank(reseller.getCpf())) missing.add("CPF");
+        if (isBlank(reseller.getAddressStreet())) missing.add("Rua");
+        if (isBlank(reseller.getAddressNumber())) missing.add("Número");
+        if (isBlank(reseller.getAddressNeighborhood())) missing.add("Bairro");
+        if (isBlank(reseller.getAddressCity())) missing.add("Cidade");
+        if (isBlank(reseller.getAddressState())) missing.add("Estado");
+        if (isBlank(reseller.getAddressZip())) missing.add("CEP");
+        if (isBlank(reseller.getInstagram()) && isBlank(reseller.getFacebook()) && isBlank(reseller.getTiktok()))
+            missing.add("Pelo menos 1 rede social");
+        if (isBlank(reseller.getReference1Name()) || isBlank(reseller.getReference1Phone()))
+            missing.add("Referência 1 (nome e telefone)");
+        long docCount = documentRepository.countByResellerId(reseller.getId());
+        if (docCount == 0) missing.add("Pelo menos 1 foto/documento");
+        return new ResellerCompletenessResponse(missing.isEmpty(), missing);
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 
     @Transactional
@@ -275,10 +370,13 @@ public class ResellerService {
         );
     }
 
-    private ResellerSummaryResponse toSummary(Reseller r, String managerName) {
+    private ResellerSummaryResponse toSummary(Reseller r, String managerName,
+                                               int openConsignments, BigDecimal openValue,
+                                               BigDecimal pendingReceivable) {
         return new ResellerSummaryResponse(
             r.getId(), r.getName(), r.getPhone(), r.getEmail(),
-            r.getStatus(), managerName, 0, r.getCreatedAt()
+            r.getStatus(), r.getManagerId(), managerName,
+            openConsignments, openValue, pendingReceivable, r.getCreatedAt()
         );
     }
 

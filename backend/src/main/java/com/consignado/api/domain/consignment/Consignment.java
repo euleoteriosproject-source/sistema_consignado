@@ -4,9 +4,6 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
-import org.hibernate.type.descriptor.java.UUIDJavaType;
 
 import com.consignado.api.shared.entity.TimestampedEntity;
 
@@ -19,7 +16,6 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "consignments")
-@FilterDef(name = "tenantFilter", parameters = @ParamDef(name = "tenantId", type = UUIDJavaType.class))
 @Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 public class Consignment extends TimestampedEntity {
 

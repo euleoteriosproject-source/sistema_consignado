@@ -15,4 +15,10 @@ public interface SettlementRepository extends JpaRepository<Settlement, UUID>, J
     List<Settlement> findByTenantIdAndSettlementDateBetween(UUID tenantId, LocalDate from, LocalDate to);
 
     Optional<Settlement> findFirstByResellerIdAndTenantIdOrderBySettlementDateDesc(UUID resellerId, UUID tenantId);
+
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT s.consignmentId, SUM(s.netToReceive) FROM Settlement s " +
+        "WHERE s.consignmentId IN :consignmentIds GROUP BY s.consignmentId")
+    List<Object[]> sumNetToReceiveByConsignmentIds(
+        @org.springframework.data.repository.query.Param("consignmentIds") java.util.Collection<UUID> consignmentIds);
 }

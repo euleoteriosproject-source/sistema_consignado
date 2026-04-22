@@ -27,8 +27,10 @@ public class DashboardController {
 
     @GetMapping("/summary")
     public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getSummary() {
-        requireOwner();
-        return ResponseEntity.ok(ApiResponse.ok(dashboardService.getSummary(TenantContext.TENANT_ID.get())));
+        var tenantId = TenantContext.TENANT_ID.get();
+        var role = TenantContext.ROLE.get();
+        var managerId = "manager".equalsIgnoreCase(role) ? TenantContext.USER_ID.get() : null;
+        return ResponseEntity.ok(ApiResponse.ok(dashboardService.getSummary(tenantId, managerId)));
     }
 
     @GetMapping("/tree")

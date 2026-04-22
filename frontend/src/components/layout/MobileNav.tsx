@@ -2,12 +2,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Gem, LayoutDashboard, Users, Package, ShoppingBag, DollarSign, FileText, Settings } from "lucide-react";
+import { Menu, X, Gem, LayoutDashboard, Users, Package, ShoppingBag, DollarSign, FileText, Settings, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
 
-const navItems = [
+const ownerNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/gestoras", label: "Gestores(as)", icon: UserCog },
   { href: "/revendedoras", label: "Revendedoras", icon: Users },
   { href: "/produtos", label: "Produtos", icon: Package },
   { href: "/consignados", label: "Consignados", icon: ShoppingBag },
@@ -16,9 +18,20 @@ const navItems = [
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
+const managerNav = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/revendedoras", label: "Revendedores(as)", icon: Users },
+  { href: "/produtos", label: "Produtos", icon: Package },
+  { href: "/consignados", label: "Consignados", icon: ShoppingBag },
+  { href: "/financeiro", label: "Financeiro", icon: DollarSign },
+];
+
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const tenantName = useAuthStore((s) => s.tenantName);
+  const role = useAuthStore((s) => s.role);
+  const navItems = role === "manager" ? managerNav : ownerNav;
 
   return (
     <div className="md:hidden">
@@ -33,7 +46,7 @@ export function MobileNav() {
           >
             <div className="flex items-center gap-2 px-6 py-5 border-b border-sidebar-border">
               <Gem className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold">Consignado</span>
+              <span className="text-lg font-bold">{tenantName ?? "Consignado"}</span>
             </div>
             <nav className="flex-1 px-3 py-4 space-y-1">
               {navItems.map((item) => {

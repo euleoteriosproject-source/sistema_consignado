@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Gem, Loader2 } from "lucide-react";
+import { Gem, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,17 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-md">
+        <div className="mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Voltar ao site
+          </Button>
+        </div>
         <div className="flex items-center justify-center gap-2 mb-8">
           <Gem className="h-8 w-8 text-primary" />
           <span className="text-2xl font-bold">Consignado</span>
@@ -92,6 +104,13 @@ export default function LoginPage() {
                 Entrar
               </Button>
             </form>
+
+            <p className="text-center text-sm text-muted-foreground mt-4">
+              Ainda não tem uma conta?{" "}
+              <Link href="/cadastro" className="text-primary font-medium hover:underline">
+                Criar conta grátis
+              </Link>
+            </p>
           </CardContent>
         </Card>
       </div>

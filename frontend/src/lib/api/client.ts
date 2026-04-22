@@ -31,6 +31,20 @@ export async function apiFetch<T>(
   return body.data ?? body;
 }
 
+export async function apiUpload(path: string, formData: FormData): Promise<unknown> {
+  const token = await getToken();
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(error?.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function apiDownload(path: string): Promise<Blob> {
   const token = await getToken();
   const res = await fetch(`${API_URL}${path}`, {

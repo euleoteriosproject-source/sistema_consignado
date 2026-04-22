@@ -2,19 +2,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  Users,
-  Package,
-  ShoppingBag,
-  DollarSign,
-  FileText,
-  Settings,
-  Gem,
+  LayoutDashboard, Users, Package, ShoppingBag,
+  DollarSign, FileText, Settings, Gem, UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
 
-const navItems = [
+const ownerNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/gestoras", label: "Gestores(as)", icon: UserCog },
   { href: "/revendedoras", label: "Revendedoras", icon: Users },
   { href: "/produtos", label: "Produtos", icon: Package },
   { href: "/consignados", label: "Consignados", icon: ShoppingBag },
@@ -23,14 +19,27 @@ const navItems = [
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
+const managerNav = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/revendedoras", label: "Revendedores(as)", icon: Users },
+  { href: "/produtos", label: "Produtos", icon: Package },
+  { href: "/consignados", label: "Consignados", icon: ShoppingBag },
+  { href: "/financeiro", label: "Financeiro", icon: DollarSign },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
+  const tenantName = useAuthStore((s) => s.tenantName);
+  const role = useAuthStore((s) => s.role);
+  const navItems = role === "manager" ? managerNav : ownerNav;
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border min-h-screen">
       <div className="flex items-center gap-2 px-6 py-5 border-b border-sidebar-border">
-        <Gem className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold text-sidebar-foreground">Consignado</span>
+        <Gem className="h-6 w-6 text-primary shrink-0" />
+        <span className="text-base font-bold text-sidebar-foreground truncate leading-tight">
+          {tenantName ?? "Consignado"}
+        </span>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => {
@@ -53,6 +62,16 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <div className="px-4 py-4 border-t border-sidebar-border flex items-center">
+        {role && (
+          <span className={cn(
+            "text-xs px-2 py-1 rounded-full font-medium",
+            role === "owner" ? "bg-amber-500/20 text-amber-300" : "bg-blue-500/20 text-blue-300"
+          )}>
+            {role === "owner" ? "Dono(a)" : "Gestor(a)"}
+          </span>
+        )}
+      </div>
     </aside>
   );
 }
