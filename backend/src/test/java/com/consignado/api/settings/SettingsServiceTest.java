@@ -43,7 +43,7 @@ class SettingsServiceTest {
         when(tenantRepository.findById(TENANT_ID)).thenReturn(Optional.of(tenant));
         when(userRepository.findByTenantIdAndRole(TENANT_ID, "manager")).thenReturn(List.of(existing));
 
-        var request = new CreateManagerRequest("Nova Gestora", "nova@email.com", null);
+        var request = new CreateManagerRequest("Nova Gestora", "nova@email.com", "Teste@10", null);
 
         assertThrows(BusinessException.class, () ->
             ScopedValue.runWhere(TenantContext.TENANT_ID, TENANT_ID,
@@ -60,7 +60,7 @@ class SettingsServiceTest {
         when(userRepository.findByTenantIdAndRole(TENANT_ID, "manager")).thenReturn(List.of());
         when(userRepository.existsByEmailAndTenantId("dup@email.com", TENANT_ID)).thenReturn(true);
 
-        var request = new CreateManagerRequest("Gestora", "dup@email.com", null);
+        var request = new CreateManagerRequest("Gestora", "dup@email.com", "Teste@10", null);
 
         assertThrows(BusinessException.class, () ->
             ScopedValue.runWhere(TenantContext.TENANT_ID, TENANT_ID,
@@ -79,7 +79,7 @@ class SettingsServiceTest {
         when(userRepository.existsByEmailAndTenantId(any(), any())).thenReturn(false);
         when(userRepository.save(any())).thenReturn(saved);
 
-        var request = new CreateManagerRequest("Gestora Nova", "nova@email.com", "11999999999");
+        var request = new CreateManagerRequest("Gestora Nova", "nova@email.com", "Teste@10", "11999999999");
 
         var result = ScopedValue.callWhere(TenantContext.TENANT_ID, TENANT_ID,
             () -> ScopedValue.callWhere(TenantContext.USER_ID, USER_ID,
