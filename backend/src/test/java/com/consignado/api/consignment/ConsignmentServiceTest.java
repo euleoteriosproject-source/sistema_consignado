@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.consignado.api.domain.consignment.Consignment;
 import com.consignado.api.domain.consignment.ConsignmentItem;
+import com.consignado.api.domain.consignment.ConsignmentItemMovementRepository;
 import com.consignado.api.domain.consignment.ConsignmentItemRepository;
 import com.consignado.api.domain.consignment.ConsignmentRepository;
 import com.consignado.api.domain.consignment.ConsignmentService;
@@ -40,6 +41,7 @@ class ConsignmentServiceTest {
 
     @Mock private ConsignmentRepository consignmentRepository;
     @Mock private ConsignmentItemRepository itemRepository;
+    @Mock private ConsignmentItemMovementRepository movementRepository;
     @Mock private ResellerRepository resellerRepository;
     @Mock private UserRepository userRepository;
     @Mock private ProductRepository productRepository;
@@ -85,6 +87,7 @@ class ConsignmentServiceTest {
         when(consignmentRepository.save(any())).thenReturn(savedConsignment);
         when(itemRepository.findByConsignmentId(savedConsignmentId)).thenReturn(List.of(savedItem));
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(buildUser()));
+        when(movementRepository.findByItemIdOrderByCreatedAtAsc(any())).thenReturn(List.of());
 
         var request = new ConsignmentRequest(resellerId, null, null,
             List.of(new ConsignmentItemRequest(productId, 3)), null);
@@ -115,6 +118,7 @@ class ConsignmentServiceTest {
         when(itemRepository.findByConsignmentId(consignmentId)).thenReturn(List.of(item));
         when(resellerRepository.findById(resellerId)).thenReturn(Optional.of(buildReseller(resellerId)));
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(buildUser()));
+        when(movementRepository.findByItemIdOrderByCreatedAtAsc(any())).thenReturn(List.of());
 
         ScopedValue.callWhere(TenantContext.TENANT_ID, TENANT_ID,
             () -> ScopedValue.callWhere(TenantContext.USER_ID, USER_ID,
@@ -169,6 +173,7 @@ class ConsignmentServiceTest {
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
         when(resellerRepository.findById(resellerId)).thenReturn(Optional.of(buildReseller(resellerId)));
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(buildUser()));
+        when(movementRepository.findByItemIdOrderByCreatedAtAsc(any())).thenReturn(List.of());
 
         ScopedValue.callWhere(TenantContext.TENANT_ID, TENANT_ID,
             () -> ScopedValue.callWhere(TenantContext.USER_ID, USER_ID,

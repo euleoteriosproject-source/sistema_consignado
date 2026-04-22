@@ -21,6 +21,7 @@ import com.consignado.api.domain.tenant.TenantRepository;
 import com.consignado.api.domain.user.User;
 import com.consignado.api.domain.user.UserRepository;
 import com.consignado.api.multitenancy.TenantContext;
+import com.consignado.api.security.SupabaseAuthAdminService;
 import com.consignado.api.shared.exception.BusinessException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -30,6 +31,7 @@ class SettingsServiceTest {
     @Mock private TenantRepository tenantRepository;
     @Mock private UserRepository userRepository;
     @Mock private ObjectMapper objectMapper;
+    @Mock private SupabaseAuthAdminService supabaseAuthAdminService;
     @InjectMocks private SettingsService settingsService;
 
     private static final UUID TENANT_ID = UUID.randomUUID();
@@ -77,6 +79,7 @@ class SettingsServiceTest {
         when(tenantRepository.findById(TENANT_ID)).thenReturn(Optional.of(tenant));
         when(userRepository.findByTenantIdAndRole(TENANT_ID, "manager")).thenReturn(List.of());
         when(userRepository.existsByEmailAndTenantId(any(), any())).thenReturn(false);
+        when(supabaseAuthAdminService.createUser(any(), any())).thenReturn(UUID.randomUUID());
         when(userRepository.save(any())).thenReturn(saved);
 
         var request = new CreateManagerRequest("Gestora Nova", "nova@email.com", "Teste@10", "11999999999");
