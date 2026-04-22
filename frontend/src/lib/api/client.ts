@@ -2,16 +2,37 @@ import { createClient } from "@/lib/supabase/client";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
+// Cache token para evitar chamar getSession() em cada request paralelo
+let cachedToken: string | null = null;
+let tokenExpiresAt = 0;
+let tokenInflight: Promise<string | null> | null = null;
+
 async function getToken(): Promise<string | null> {
-  const supabase = createClient();
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
+  const now = Date.now();
+  if (cachedToken && now < tokenExpiresAt) return cachedToken;
+  if (tokenInflight) return tokenInflight;
+
+  tokenInflight = (async () => {
+    const { data } = await createClient().auth.getSession();
+    cachedToken = data.session?.access_token ?? null;
+    // Expira 5 min antes do token real (tokens Supabase duram 1h)
+    tokenExpiresAt = now + 55 * 60 * 1000;
+    tokenInflight = null;
+    return cachedToken;
+  })();
+
+  return tokenInflight;
 }
 
-export async function apiFetch<T>(
-  path: string,
-  options?: RequestInit
-): Promise<T> {
+// Invalida o cache quando o auth mudar (logout, refresh, etc.)
+if (typeof window !== "undefined") {
+  createClient().auth.onAuthStateChange(() => {
+    cachedToken = null;
+    tokenExpiresAt = 0;
+  });
+}
+
+export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const token = await getToken();
   const res = await fetch(`${API_URL}${path}`, {
     ...options,

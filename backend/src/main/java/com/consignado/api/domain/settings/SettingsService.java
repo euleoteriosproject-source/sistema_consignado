@@ -82,8 +82,10 @@ public class SettingsService {
             throw new BusinessException("E-mail já cadastrado neste tenant");
         }
 
-        // Cria conta no Supabase Auth com a senha fornecida
-        UUID supabaseUid = supabaseAuthAdminService.createUser(request.email(), request.password());
+        // Cria conta no Supabase Auth — convite por email ou senha manual
+        UUID supabaseUid = (request.password() != null && !request.password().isBlank())
+            ? supabaseAuthAdminService.createUser(request.email(), request.password())
+            : supabaseAuthAdminService.inviteUser(request.email());
 
         var user = new User();
         user.setTenantId(tenantId);

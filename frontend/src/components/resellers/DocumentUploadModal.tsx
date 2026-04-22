@@ -31,6 +31,7 @@ export function DocumentUploadModal({ open, onClose, resellerId, resellerName }:
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [docType, setDocType] = useState("rg_front");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const { data: docs, isLoading } = useQuery({
     queryKey: ["reseller-docs", resellerId],
@@ -47,7 +48,9 @@ export function DocumentUploadModal({ open, onClose, resellerId, resellerName }:
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reseller-docs", resellerId] });
-      toast.success("Documento enviado!");
+      queryClient.invalidateQueries({ queryKey: ["reseller-completeness", resellerId] });
+      toast.success("Documento salvo!");
+      setSelectedFile(null);
       if (fileRef.current) fileRef.current.value = "";
     },
     onError: (e) => toast.error(e.message),
@@ -64,7 +67,7 @@ export function DocumentUploadModal({ open, onClose, resellerId, resellerName }:
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) uploadMutation.mutate(file);
+    if (file) setSelectedFile(file);
   };
 
   return (
@@ -74,8 +77,8 @@ export function DocumentUploadModal({ open, onClose, resellerId, resellerName }:
           <DialogTitle>Documentos — {resellerName}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
-          <div className="flex gap-2 items-end">
-            <div className="flex-1 space-y-1">
+          <div className="space-y-3">
+            <div className="space-y-1">
               <Label>Tipo de documento</Label>
               <Select value={docType} onValueChange={setDocType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -86,16 +89,28 @@ export function DocumentUploadModal({ open, onClose, resellerId, resellerName }:
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploadMutation.isPending}
-            >
-              {uploadMutation.isPending
-                ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                : <Upload className="h-4 w-4 mr-1" />}
-              Enviar arquivo
-            </Button>
+            <div className="flex gap-2 items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploadMutation.isPending}
+                className="flex-1"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                {selectedFile ? selectedFile.name : "Selecionar arquivo..."}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => selectedFile && uploadMutation.mutate(selectedFile)}
+                disabled={!selectedFile || uploadMutation.isPending}
+              >
+                {uploadMutation.isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  : null}
+                Salvar documento
+              </Button>
+            </div>
             <input
               ref={fileRef}
               type="file"

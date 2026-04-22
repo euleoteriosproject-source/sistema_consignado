@@ -35,9 +35,9 @@ public enum TenantPlan {
 
     public String priceLabel() {
         return switch (this) {
-            case BASIC   -> "R$ 97/mês";
+            case BASIC   -> "R$ 147/mês";
             case PRO     -> "R$ 197/mês";
-            case PREMIUM -> "R$ 347/mês";
+            case PREMIUM -> "R$ 397/mês";
         };
     }
 }

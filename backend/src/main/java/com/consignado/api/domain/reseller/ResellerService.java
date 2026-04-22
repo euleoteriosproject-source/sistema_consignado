@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -183,11 +185,19 @@ public class ResellerService {
             .orElseThrow(() -> new ResourceNotFoundException("Gestora", request.managerId()));
 
         mapRequestToEntity(request, reseller);
+        if (!buildCompleteness(reseller).complete() && "active".equals(reseller.getStatus())) {
+            reseller.setStatus("inactive");
+            log.info("Reseller id={} set to inactive due to incomplete registration", id);
+        }
         var saved = resellerRepository.save(reseller);
         log.info("Reseller updated id={} tenant={}", id, tenantId);
         return toResponse(saved, manager.getName());
     }
 
+    @Caching(evict = {
+        @CacheEvict(value = "dashboard-summary-v2", allEntries = true),
+        @CacheEvict(value = "dashboard-tree", allEntries = true)
+    })
     @Transactional
     public void updateStatus(UUID id, String status) {
         var tenantId = TenantContext.TENANT_ID.get();

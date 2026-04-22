@@ -57,7 +57,21 @@ export default function ResellerDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reseller", id] });
       queryClient.invalidateQueries({ queryKey: ["resellers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-alerts"] });
       toast.success("Revendedor(a) ativado(a)!");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: () => resellersApi.updateStatus(id, "inactive"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reseller", id] });
+      queryClient.invalidateQueries({ queryKey: ["resellers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-alerts"] });
+      toast.success("Revendedor(a) desativado(a).");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -96,6 +110,17 @@ export default function ResellerDetailPage() {
           <p className="text-sm text-muted-foreground">Gestor(a): {reseller.managerName}</p>
         </div>
         <div className="flex gap-2">
+          {reseller.status === "active" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => deactivateMutation.mutate()}
+              disabled={deactivateMutation.isPending}
+              className="text-destructive border-destructive hover:bg-destructive/10"
+            >
+              <ToggleLeft className="h-4 w-4 mr-1" /> Desativar
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => setDocsOpen(true)}>
             <FileText className="h-4 w-4 mr-1" /> Documentos
           </Button>

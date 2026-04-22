@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 /* ─── dados estáticos ─── */
 const plans = [
   {
-    name: "Basic", price: "R$ 97", period: "/mês", badge: null,
+    name: "Basic", price: "R$ 147", period: "/mês", badge: null,
     features: ["1 gestor(a)", "20 revendedoras", "50 produtos", "1 GB armazenamento", "Relatórios Excel", "Suporte por e-mail"],
   },
   {
@@ -19,7 +19,7 @@ const plans = [
     features: ["3 gestores(as)", "100 revendedoras", "Produtos ilimitados", "5 GB armazenamento", "Relatórios Excel", "Suporte prioritário"],
   },
   {
-    name: "Premium", price: "R$ 347", period: "/mês", badge: null,
+    name: "Premium", price: "R$ 397", period: "/mês", badge: null,
     features: ["Gestores(as) ilimitados(as)", "Revendedoras ilimitadas", "Produtos ilimitados", "20 GB armazenamento", "Relatórios Excel", "Suporte dedicado"],
   },
 ];
@@ -344,7 +344,7 @@ export default function LandingPage() {
           ))}
         </div>
         <p className="text-center text-sm text-muted-foreground mt-8">
-          Plano anual: 2 meses grátis · Taxa de implantação: R$ 200–500 (única)
+          Setup completo incluso: configuração, cadastro e treinamento · R$ 300–500 (única vez)
         </p>
       </section>
 

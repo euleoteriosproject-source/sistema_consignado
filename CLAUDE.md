@@ -793,14 +793,20 @@ Atualize o teste do Service.
 ## 💳 PLANOS SAAS
 
 ```
-BASIC    R$  97/mês → 1 gestora,  20 revendedoras,  50 produtos,  1 GB
+BASIC    R$ 147/mês → 1 gestora,  20 revendedoras,  50 produtos,  1 GB
 PRO      R$ 197/mês → 3 gestoras, 100 revendedoras, ilimitados,   5 GB
-PREMIUM  R$ 347/mês → ilimitado,  ilimitado,         ilimitados,  20 GB
+PREMIUM  R$ 397/mês → ilimitado,  ilimitado,         ilimitados,  20 GB
 
-Setup fee: R$200–500 (único, na ativação)
+Setup completo: R$300 (2–3h) ou R$500 (4–6h)
+  Inclui: configuração de produtos, revendedoras e call de treinamento
 Trial: 14 dias grátis sem cartão
 Anual: 2 meses grátis
 ```
+
+### Billing
+- **Agora (até ~10 clientes):** Kiwify — sem código, recorrência nativa, rápido de configurar
+- **Futuro (10+ clientes):** migrar para Iugu integrado no sistema
+- **Stripe:** deixar para clientes internacionais (burocracia para receber no Brasil)
 
 Limites enforçados no backend via `TenantPlan` enum + validação no Service antes de criar
 gestora, revendedora ou produto.

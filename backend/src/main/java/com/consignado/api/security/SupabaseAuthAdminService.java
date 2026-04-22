@@ -57,6 +57,33 @@ public class SupabaseAuthAdminService {
         }
     }
 
+    public UUID inviteUser(String email) {
+        String url = appProperties.supabase().url() + "/auth/v1/invite";
+        try {
+            ObjectNode body = objectMapper.createObjectNode();
+            body.put("email", email);
+
+            Request request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create(objectMapper.writeValueAsBytes(body), JSON))
+                .addHeader("Authorization", "Bearer " + appProperties.supabase().serviceRoleKey())
+                .addHeader("apikey", appProperties.supabase().serviceRoleKey())
+                .build();
+
+            try (var response = httpClient.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                if (!response.isSuccessful()) {
+                    log.warn("Supabase invite user failed: status={} body={}", response.code(), responseBody);
+                    throw new BusinessException("Erro ao enviar convite Supabase: " + response.code());
+                }
+                var json = objectMapper.readTree(responseBody);
+                return UUID.fromString(json.get("id").asText());
+            }
+        } catch (IOException e) {
+            throw new BusinessException("Falha ao comunicar com Supabase Auth: " + e.getMessage());
+        }
+    }
+
     public void deleteUser(UUID supabaseUid) {
         String url = appProperties.supabase().url() + "/auth/v1/admin/users/" + supabaseUid;
         try {

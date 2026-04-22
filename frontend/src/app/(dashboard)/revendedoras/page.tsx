@@ -122,25 +122,36 @@ export default function RevendedorasPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("active");
   const [page, setPage] = useState(0);
+  const [autoFallback, setAutoFallback] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [docsModal, setDocsModal] = useState<{ id: string; name: string } | null>(null);
   const [editReseller, setEditReseller] = useState<Reseller | null>(null);
   const [lotsReseller, setLotsReseller] = useState<ResellerSummary | null>(null);
 
+  const effectiveStatus = autoFallback ? "all" : status;
   const params: Record<string, string> = { page: String(page), size: "20" };
   if (search) params.search = search;
-  if (status !== "all") params.status = status;
+  if (effectiveStatus !== "all") params.status = effectiveStatus;
 
   const { data, isLoading } = useQuery<PageResponse<ResellerSummary>>({
     queryKey: ["resellers", params],
-    queryFn: () => resellersApi.list(params),
+    queryFn: async () => {
+      const result = await resellersApi.list(params);
+      if (result.content.length === 0 && status === "active" && !autoFallback && !search) {
+        setAutoFallback(true);
+      }
+      return result;
+    },
   });
 
   const toggleStatus = useMutation({
     mutationFn: ({ id, newStatus }: { id: string; newStatus: string }) =>
       resellersApi.updateStatus(id, newStatus),
     onSuccess: () => {
+      setAutoFallback(false);
       queryClient.invalidateQueries({ queryKey: ["resellers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-alerts"] });
       toast.success("Status atualizado!");
     },
     onError: (e) => toast.error(e.message),

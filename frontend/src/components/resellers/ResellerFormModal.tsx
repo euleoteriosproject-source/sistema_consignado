@@ -16,6 +16,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Reseller } from "@/types";
 
+const maskCpf = (v: string) =>
+  v.replace(/\D/g, "").slice(0, 11)
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+
+const maskPhone = (v: string) => {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 10) return d.replace(/(\d{2})(\d{4})(\d{0,4})/, "($1) $2-$3").replace(/-$/, "");
+  return d.replace(/(\d{2})(\d{5})(\d{0,4})/, "($1) $2-$3").replace(/-$/, "");
+};
+
+const maskCep = (v: string) =>
+  v.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d{1,3})/, "$1-$2");
+
 const schema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   phone: z.string().min(1, "Telefone é obrigatório"),
@@ -110,8 +125,10 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
       const body = { ...data, birthDate: data.birthDate || undefined, email: data.email || undefined };
       return isEdit ? resellersApi.update(reseller!.id, body) : resellersApi.create(body);
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ["resellers"] });
+      queryClient.invalidateQueries({ queryKey: ["reseller", saved.id] });
+      queryClient.invalidateQueries({ queryKey: ["reseller-completeness", saved.id] });
       toast.success(isEdit ? "Revendedor(a) atualizado(a)!" : "Revendedor(a) cadastrado(a)!");
       onClose();
     },
@@ -165,12 +182,12 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
                 </div>
                 <div className="space-y-1">
                   <Label>Telefone principal *</Label>
-                  <Input placeholder="(11) 99999-9999" {...register("phone")} />
+                  <Input placeholder="(11) 99999-9999" {...register("phone")} onChange={(e) => { e.target.value = maskPhone(e.target.value); register("phone").onChange(e); }} />
                   {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
                 </div>
                 <div className="space-y-1">
                   <Label>Telefone 2</Label>
-                  <Input placeholder="Opcional" {...register("phone2")} />
+                  <Input placeholder="(11) 99999-9999" {...register("phone2")} onChange={(e) => { e.target.value = maskPhone(e.target.value); register("phone2").onChange(e); }} />
                 </div>
                 <div className="space-y-1">
                   <Label>Gestor(a) responsável *</Label>
@@ -193,7 +210,7 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
                 </div>
                 <div className="space-y-1">
                   <Label>CPF *</Label>
-                  <Input placeholder="000.000.000-00" {...register("cpf")} />
+                  <Input placeholder="000.000.000-00" {...register("cpf")} onChange={(e) => { e.target.value = maskCpf(e.target.value); register("cpf").onChange(e); }} />
                   {errors.cpf && <p className="text-xs text-destructive">{errors.cpf.message}</p>}
                 </div>
                 <div className="space-y-1">
@@ -240,7 +257,7 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
                 </div>
                 <div className="space-y-1">
                   <Label>CEP *</Label>
-                  <Input placeholder="00000-000" {...register("addressZip")} />
+                  <Input placeholder="00000-000" {...register("addressZip")} onChange={(e) => { e.target.value = maskCep(e.target.value); register("addressZip").onChange(e); }} />
                   {errors.addressZip && <p className="text-xs text-destructive">{errors.addressZip.message}</p>}
                 </div>
               </div>
@@ -274,7 +291,7 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
                 </div>
                 <div className="space-y-1">
                   <Label>Referência 1 — Telefone *</Label>
-                  <Input placeholder="(11) 99999-9999" {...register("reference1Phone")} />
+                  <Input placeholder="(11) 99999-9999" {...register("reference1Phone")} onChange={(e) => { e.target.value = maskPhone(e.target.value); register("reference1Phone").onChange(e); }} />
                   {errors.reference1Phone && <p className="text-xs text-destructive">{errors.reference1Phone.message}</p>}
                 </div>
                 <div className="space-y-1">
@@ -283,7 +300,7 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
                 </div>
                 <div className="space-y-1">
                   <Label>Referência 2 — Telefone</Label>
-                  <Input placeholder="(11) 99999-9999" {...register("reference2Phone")} />
+                  <Input placeholder="(11) 99999-9999" {...register("reference2Phone")} onChange={(e) => { e.target.value = maskPhone(e.target.value); register("reference2Phone").onChange(e); }} />
                 </div>
               </div>
             </TabsContent>
