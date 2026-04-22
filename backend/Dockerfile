@@ -23,4 +23,4 @@ USER spring:spring
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-XX:+UseVirtualThreads", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
