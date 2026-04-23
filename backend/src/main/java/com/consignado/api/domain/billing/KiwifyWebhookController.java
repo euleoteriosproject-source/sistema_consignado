@@ -32,8 +32,12 @@ public class KiwifyWebhookController {
         String receivedToken = token != null ? token
             : (payload.has("token") ? payload.get("token").asText() : "");
 
+        log.info("Kiwify webhook: expectedToken={} receivedToken={} queryParam={} bodyToken={}",
+            expectedToken, receivedToken, token,
+            payload.has("token") ? payload.get("token").asText() : "N/A");
+
         if (!expectedToken.equals(receivedToken)) {
-            log.warn("Kiwify webhook: token inválido");
+            log.warn("Kiwify webhook: token inválido - esperado={} recebido={}", expectedToken, receivedToken);
             return ResponseEntity.status(401).build();
         }
 
