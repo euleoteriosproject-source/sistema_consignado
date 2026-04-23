@@ -30,9 +30,26 @@ public class TenantFilter extends OncePerRequestFilter {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         if (auth != null && auth.getPrincipal() instanceof TenantUserDetails userDetails) {
+            String role = userDetails.role();
+
+            // Superadmin não tem tenant — apenas define o ROLE
+            if ("superadmin".equals(role)) {
+                try {
+                    ScopedValue.runWhere(TenantContext.ROLE, role,
+                        () -> {
+                            try { filterChain.doFilter(request, response); }
+                            catch (IOException | ServletException e) { throw new RuntimeException(e); }
+                        });
+                } catch (RuntimeException e) {
+                    if (e.getCause() instanceof IOException ioe) throw ioe;
+                    if (e.getCause() instanceof ServletException se) throw se;
+                    throw e;
+                }
+                return;
+            }
+
             UUID tenantId = userDetails.tenantId();
             UUID userId = userDetails.userId();
-            String role = userDetails.role();
 
             try {
                 ScopedValue.runWhere(TenantContext.TENANT_ID, tenantId,

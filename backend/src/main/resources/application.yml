@@ -71,6 +71,8 @@ app:
     api-key: ${RESEND_API_KEY:disabled}
     from-email: ${RESEND_FROM_EMAIL:suporte@seudominio.com.br}
     support-email: ${SUPPORT_EMAIL:vinicius.euleoterio@hotmail.com}
+  admin:
+    email: ${ADMIN_EMAIL:euleoteriosproject@gmail.com}
 
 management:
   endpoints:

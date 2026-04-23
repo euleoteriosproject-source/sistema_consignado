@@ -116,6 +116,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             request.setAttribute(ATTR_SUPABASE_UID, supabaseUid);
             if (email != null) request.setAttribute(ATTR_EMAIL, email);
 
+            // Superadmin não está na tabela users — identificado pelo e-mail configurado
+            String adminEmail = appProperties.admin() != null ? appProperties.admin().email() : null;
+            if (adminEmail != null && adminEmail.equalsIgnoreCase(email)) {
+                var details = new TenantUserDetails(null, null, email, "superadmin", "Admin");
+                SecurityContextHolder.getContext().setAuthentication(
+                    new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities())
+                );
+                log.debug("Superadmin auth ok: email={}", email);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             userRepository.findBySupabaseUid(UUID.fromString(supabaseUid))
                 .ifPresentOrElse(user -> {
                     if (!user.isActive() && !user.isInvitePending()) return;

@@ -9,7 +9,8 @@ public record AppProperties(
     JwtProperties jwt,
     StripeProperties stripe,
     KiwifyProperties kiwify,
-    ResendProperties resend
+    ResendProperties resend,
+    AdminProperties admin
 ) {
 
     public record SupabaseProperties(
@@ -37,5 +38,9 @@ public record AppProperties(
         String apiKey,
         String fromEmail,
         String supportEmail
+    ) {}
+
+    public record AdminProperties(
+        String email
     ) {}
 }

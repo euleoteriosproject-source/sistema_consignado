@@ -36,9 +36,12 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/consignados") ||
     request.nextUrl.pathname.startsWith("/financeiro") ||
     request.nextUrl.pathname.startsWith("/relatorios") ||
-    request.nextUrl.pathname.startsWith("/configuracoes");
+    request.nextUrl.pathname.startsWith("/configuracoes") ||
+    request.nextUrl.pathname.startsWith("/gestoras") ||
+    request.nextUrl.pathname.startsWith("/suporte");
+  const isAdmin = request.nextUrl.pathname.startsWith("/admin");
 
-  if (!user && isDashboard) {
+  if (!user && (isDashboard || isAdmin)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
