@@ -26,4 +26,10 @@ public record AppProperties(
         String secretKey,
         String webhookSecret
     ) {}
+
+    public record KiwifyProperties(
+        String webhookToken
+    ) {}
+
+    KiwifyProperties kiwify();
 }

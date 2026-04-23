@@ -12,14 +12,17 @@ import { Badge } from "@/components/ui/badge";
 const plans = [
   {
     name: "Basic", price: "R$ 147", period: "/mês", badge: null,
+    checkoutUrl: "https://pay.kiwify.com.br/NEKCCPY",
     features: ["1 gestor(a)", "20 revendedoras", "50 produtos", "1 GB armazenamento", "Relatórios Excel", "Suporte por e-mail"],
   },
   {
     name: "Pro", price: "R$ 197", period: "/mês", badge: "Mais popular",
+    checkoutUrl: "https://pay.kiwify.com.br/ch1Oa1i",
     features: ["3 gestores(as)", "100 revendedoras", "Produtos ilimitados", "5 GB armazenamento", "Relatórios Excel", "Suporte prioritário"],
   },
   {
     name: "Premium", price: "R$ 397", period: "/mês", badge: null,
+    checkoutUrl: "https://pay.kiwify.com.br/SZKBie2",
     features: ["Gestores(as) ilimitados(as)", "Revendedoras ilimitadas", "Produtos ilimitados", "20 GB armazenamento", "Relatórios Excel", "Suporte dedicado"],
   },
 ];
@@ -334,11 +337,11 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/cadastro" className="block">
+                <a href={plan.checkoutUrl} target="_blank" rel="noopener noreferrer" className="block">
                   <Button className="w-full" variant={plan.badge ? "default" : "outline"}>
-                    Começar grátis
+                    Assinar agora
                   </Button>
-                </Link>
+                </a>
               </CardContent>
             </Card>
           ))}

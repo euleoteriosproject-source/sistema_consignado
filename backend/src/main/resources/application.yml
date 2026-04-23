@@ -63,8 +63,10 @@ app:
   jwt:
     secret: ${SUPABASE_JWT_SECRET}
   stripe:
-    secret-key: ${STRIPE_SECRET_KEY}
-    webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+    secret-key: ${STRIPE_SECRET_KEY:sk_fake}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_fake}
+  kiwify:
+    webhook-token: ${KIWIFY_WEBHOOK_TOKEN:changeme}
 
 management:
   endpoints:
