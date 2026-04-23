@@ -1,8 +1,8 @@
 "use client";
 import { useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Upload, Trash2, FileImage, Loader2 } from "lucide-react";
+import { Upload, Trash2, FileImage, Loader2, Plus } from "lucide-react";
 import { resellersApi } from "@/lib/api/resellers";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,14 +11,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 
 const docTypes = [
-  { value: "rg_front", label: "RG — Frente" },
-  { value: "rg_back", label: "RG — Verso" },
-  { value: "cnh_front", label: "CNH — Frente" },
-  { value: "cnh_back", label: "CNH — Verso" },
-  { value: "proof_of_address", label: "Comprovante de residência" },
-  { value: "selfie", label: "Selfie segurando documento" },
-  { value: "other", label: "Outro" },
+  { value: "rg_front",        label: "RG — Frente" },
+  { value: "rg_back",         label: "RG — Verso" },
+  { value: "cnh_front",       label: "CNH — Frente" },
+  { value: "cnh_back",        label: "CNH — Verso" },
+  { value: "proof_of_address",label: "Comprovante de residência" },
+  { value: "selfie",          label: "Selfie segurando documento" },
+  { value: "other",           label: "Outro" },
 ];
+
+interface PendingDoc {
+  uid: string;
+  type: string;
+  file: File;
+}
 
 interface Props {
   open: boolean;
@@ -32,52 +38,66 @@ export function DocumentUploadModal({ open, onClose, resellerId, resellerName }:
   const fileRef = useRef<HTMLInputElement>(null);
   const [docType, setDocType] = useState("rg_front");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [pending, setPending] = useState<PendingDoc[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  const { data: docs, isLoading } = useQuery({
-    queryKey: ["reseller-docs", resellerId],
-    queryFn: () => resellersApi.listDocuments(resellerId),
-    enabled: open,
-  });
+  const typeLabel = (v: string) => docTypes.find((d) => d.value === v)?.label ?? v;
 
-  const uploadMutation = useMutation({
-    mutationFn: (file: File) => {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("type", docType);
-      return resellersApi.uploadDocument(resellerId, fd);
-    },
-    onSuccess: () => {
+  function addToPending() {
+    if (!selectedFile) return;
+    setPending((prev) => [
+      ...prev,
+      { uid: crypto.randomUUID(), type: docType, file: selectedFile },
+    ]);
+    setSelectedFile(null);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function removePending(uid: string) {
+    setPending((prev) => prev.filter((d) => d.uid !== uid));
+  }
+
+  async function saveAll() {
+    if (pending.length === 0) return;
+    setSaving(true);
+    let ok = 0;
+    for (const doc of pending) {
+      try {
+        const fd = new FormData();
+        fd.append("file", doc.file);
+        fd.append("type", doc.type);
+        await resellersApi.uploadDocument(resellerId, fd);
+        ok++;
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Erro desconhecido";
+        toast.error(`Falha ao enviar "${doc.file.name}": ${msg}`);
+      }
+    }
+    setSaving(false);
+    if (ok > 0) {
       queryClient.invalidateQueries({ queryKey: ["reseller-docs", resellerId] });
       queryClient.invalidateQueries({ queryKey: ["reseller-completeness", resellerId] });
-      toast.success("Documento salvo!");
-      setSelectedFile(null);
-      if (fileRef.current) fileRef.current.value = "";
-    },
-    onError: (e) => toast.error(e.message),
-  });
+      toast.success(`${ok} documento(s) salvo(s)!`);
+      setPending([]);
+    }
+  }
 
-  const deleteMutation = useMutation({
-    mutationFn: (docId: string) => resellersApi.deleteDocument(resellerId, docId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["reseller-docs", resellerId] });
-      toast.success("Documento removido.");
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setSelectedFile(file);
-  };
+  function handleClose() {
+    setPending([]);
+    setSelectedFile(null);
+    onClose();
+  }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Documentos — {resellerName}</DialogTitle>
+          <DialogTitle>Adicionar documentos — {resellerName}</DialogTitle>
         </DialogHeader>
+
         <div className="space-y-4 mt-2">
-          <div className="space-y-3">
+          {/* Seletor */}
+          <div className="space-y-3 border rounded-lg p-3">
             <div className="space-y-1">
               <Label>Tipo de documento</Label>
               <Select value={docType} onValueChange={setDocType}>
@@ -94,21 +114,21 @@ export function DocumentUploadModal({ open, onClose, resellerId, resellerName }:
                 type="button"
                 variant="outline"
                 onClick={() => fileRef.current?.click()}
-                disabled={uploadMutation.isPending}
-                className="flex-1"
+                className="flex-1 truncate"
               >
-                <Upload className="h-4 w-4 mr-1" />
-                {selectedFile ? selectedFile.name : "Selecionar arquivo..."}
+                <Upload className="h-4 w-4 mr-1 shrink-0" />
+                <span className="truncate">
+                  {selectedFile ? selectedFile.name : "Selecionar arquivo..."}
+                </span>
               </Button>
               <Button
                 type="button"
-                onClick={() => selectedFile && uploadMutation.mutate(selectedFile)}
-                disabled={!selectedFile || uploadMutation.isPending}
+                variant="secondary"
+                onClick={addToPending}
+                disabled={!selectedFile}
               >
-                {uploadMutation.isPending
-                  ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                  : null}
-                Salvar documento
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar
               </Button>
             </div>
             <input
@@ -116,46 +136,49 @@ export function DocumentUploadModal({ open, onClose, resellerId, resellerName }:
               type="file"
               accept="image/*,application/pdf"
               className="hidden"
-              onChange={handleFileChange}
+              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Documentos enviados</Label>
-            {isLoading ? (
-              <p className="text-sm text-muted-foreground">Carregando...</p>
-            ) : docs?.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum documento enviado ainda.</p>
-            ) : (
-              docs?.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-2 border rounded-lg">
-                  <div className="flex items-center gap-2">
+          {/* Fila de envio */}
+          {pending.length > 0 && (
+            <div className="space-y-1">
+              <Label>Aguardando envio ({pending.length})</Label>
+              {pending.map((doc) => (
+                <div key={doc.uid} className="flex items-center justify-between p-2 border rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-2 min-w-0">
                     <FileImage className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <div>
-                      <Badge variant="secondary" className="text-xs">
-                        {docTypes.find((d) => d.value === doc.type)?.label ?? doc.type}
-                      </Badge>
-                      {doc.fileName && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{doc.fileName}</p>
-                      )}
+                    <div className="min-w-0">
+                      <Badge variant="secondary" className="text-xs">{typeLabel(doc.type)}</Badge>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{doc.file.name}</p>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={() => deleteMutation.mutate(doc.id)}
-                    disabled={deleteMutation.isPending}
+                    className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                    onClick={() => removePending(doc.uid)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
 
-          <div className="flex justify-end pt-2">
-            <Button variant="outline" onClick={onClose}>Fechar</Button>
+          {/* Ações */}
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" className="flex-1" onClick={handleClose} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={saveAll}
+              disabled={pending.length === 0 || saving}
+            >
+              {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Salvar {pending.length > 0 ? `${pending.length} documento(s)` : ""}
+            </Button>
           </div>
         </div>
       </DialogContent>

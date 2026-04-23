@@ -9,12 +9,22 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Pencil, FileText, CheckCircle, AlertCircle, ToggleLeft } from "lucide-react";
+import { ArrowLeft, Pencil, FileText, CheckCircle, AlertCircle, ToggleLeft, Trash2, ExternalLink } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ResellerFormModal } from "@/components/resellers/ResellerFormModal";
 import { DocumentUploadModal } from "@/components/resellers/DocumentUploadModal";
 import { toast } from "sonner";
-import type { Reseller, ResellerCompleteness } from "@/types";
+import type { Reseller, ResellerCompleteness, ResellerDocument } from "@/types";
+
+const docTypeLabel = (v: string) => ({
+  rg_front: "RG — Frente",
+  rg_back: "RG — Verso",
+  cnh_front: "CNH — Frente",
+  cnh_back: "CNH — Verso",
+  proof_of_address: "Comprovante de residência",
+  selfie: "Selfie c/ documento",
+  other: "Outro",
+}[v] ?? v);
 
 const statusLabel: Record<string, string> = {
   active: "Ativa", inactive: "Inativa", blocked: "Bloqueada",
@@ -81,6 +91,21 @@ export default function ResellerDetailPage() {
     queryFn: () => resellersApi.consignments(id),
   });
 
+  const { data: documents } = useQuery<ResellerDocument[]>({
+    queryKey: ["reseller-docs", id],
+    queryFn: () => resellersApi.listDocuments(id),
+  });
+
+  const deleteDocMutation = useMutation({
+    mutationFn: (docId: string) => resellersApi.deleteDocument(id, docId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reseller-docs", id] });
+      queryClient.invalidateQueries({ queryKey: ["reseller-completeness", id] });
+      toast.success("Documento removido.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -121,9 +146,6 @@ export default function ResellerDetailPage() {
               <ToggleLeft className="h-4 w-4 mr-1" /> Desativar
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => setDocsOpen(true)}>
-            <FileText className="h-4 w-4 mr-1" /> Documentos
-          </Button>
           <Button size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="h-4 w-4 mr-1" /> Editar
           </Button>
@@ -306,6 +328,63 @@ export default function ResellerDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Documentos</CardTitle>
+          <Button size="sm" variant="outline" onClick={() => setDocsOpen(true)}>
+            <FileText className="h-4 w-4 mr-1" /> Adicionar
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {!documents || documents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum documento anexado.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {documents.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between border rounded-lg p-2.5 gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0">
+                      <Badge variant="secondary" className="text-xs">
+                        {docTypeLabel(doc.type)}
+                      </Badge>
+                      {doc.fileName && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{doc.fileName}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {doc.publicUrl ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        asChild
+                      >
+                        <a href={doc.publicUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        if (confirm("Remover este documento?")) deleteDocMutation.mutate(doc.id);
+                      }}
+                      disabled={deleteDocMutation.isPending}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
