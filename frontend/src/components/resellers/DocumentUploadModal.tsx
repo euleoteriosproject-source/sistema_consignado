@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Upload, Trash2, FileImage, Loader2, Plus } from "lucide-react";
 import { resellersApi } from "@/lib/api/resellers";
