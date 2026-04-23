@@ -11,9 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, PackagePlus, MoreHorizontal, Pencil, ToggleLeft } from "lucide-react";
+import { Search, PackagePlus, MoreHorizontal, Pencil, ToggleLeft, TrendingUp } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ProductFormModal } from "@/components/products/ProductFormModal";
+import { StockEntryModal } from "@/components/products/StockEntryModal";
 import { toast } from "sonner";
 import type { PageResponse, ProductSummary, Product, ProductTracking } from "@/types";
 
@@ -105,6 +106,7 @@ export default function ProdutosPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [trackingProduct, setTrackingProduct] = useState<{ id: string; name: string } | null>(null);
+  const [stockEntryProduct, setStockEntryProduct] = useState<ProductSummary | null>(null);
 
   const params: Record<string, string> = { page: String(page), size: "20" };
   if (search) params.search = search;
@@ -221,6 +223,9 @@ export default function ProdutosPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setStockEntryProduct(p)}>
+                              <TrendingUp className="h-3.5 w-3.5 mr-2" /> Entrada de estoque
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEdit(p.id)}>
                               <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
                             </DropdownMenuItem>
@@ -253,6 +258,14 @@ export default function ProdutosPage() {
       </Card>
 
       <ProductFormModal open={modalOpen} onClose={handleCloseModal} product={editProduct} />
+
+      {stockEntryProduct && (
+        <StockEntryModal
+          open
+          product={stockEntryProduct}
+          onClose={() => setStockEntryProduct(null)}
+        />
+      )}
 
       {trackingProduct && (
         <TrackingDialog

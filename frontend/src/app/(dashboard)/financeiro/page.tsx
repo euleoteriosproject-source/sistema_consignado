@@ -251,7 +251,7 @@ export default function FinanceiroPage() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-amber-600">{formatCurrency(summary.totalPendingReceivable ?? 0)}</p>
-              <p className="text-xs text-muted-foreground mt-1">vendas não acertadas</p>
+              <p className="text-xs text-muted-foreground mt-1">líquido pendente de acerto</p>
             </CardContent>
           </Card>
         </div>

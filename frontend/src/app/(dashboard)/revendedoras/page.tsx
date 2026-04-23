@@ -192,7 +192,7 @@ export default function RevendedorasPage() {
                 className="max-w-sm"
               />
             </div>
-            <Select value={status} onValueChange={(v) => { setStatus(v); setPage(0); }}>
+            <Select value={effectiveStatus} onValueChange={(v) => { setStatus(v); setAutoFallback(false); setPage(0); }}>
               <SelectTrigger className="w-44">
                 <SelectValue />
               </SelectTrigger>

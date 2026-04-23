@@ -28,13 +28,19 @@ const paymentMethods = [
 
 export function PostMovementSettlementDialog({ open, data, onClose }: Props) {
   const queryClient = useQueryClient();
-  const [netValue, setNetValue] = useState(data.netValue.toFixed(2));
+  const grossValue = data.grossValue;
+
+  const defaultPct = grossValue > 0
+    ? ((data.commissionValue / grossValue) * 100).toFixed(1)
+    : "30";
+
+  const [commissionPct, setCommissionPct] = useState(defaultPct);
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [notes, setNotes] = useState("");
 
-  const grossValue = data.grossValue;
-  const parsedNet = parseFloat(netValue) || 0;
-  const impliedCommission = Math.max(0, grossValue - parsedNet);
+  const pct = parseFloat(commissionPct) || 0;
+  const commissionValue = grossValue * (pct / 100);
+  const netValue = grossValue - commissionValue;
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -42,7 +48,7 @@ export function PostMovementSettlementDialog({ open, data, onClose }: Props) {
         resellerId: data.resellerId,
         consignmentId: data.consignmentId,
         totalSoldValue: grossValue,
-        totalCommission: impliedCommission,
+        totalCommission: commissionValue,
         paymentMethod,
         notes: notes || null,
       }),
@@ -68,13 +74,11 @@ export function PostMovementSettlementDialog({ open, data, onClose }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Sold items summary */}
+          {/* Itens vendidos */}
           <div className="space-y-1.5">
             {data.soldLines.map((line, i) => (
               <div key={i} className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {line.productName} × {line.qty}
-                </span>
+                <span className="text-muted-foreground">{line.productName} × {line.qty}</span>
                 <span>{formatCurrency(line.qty * line.unitPrice)}</span>
               </div>
             ))}
@@ -82,38 +86,44 @@ export function PostMovementSettlementDialog({ open, data, onClose }: Props) {
 
           <Separator />
 
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Total vendido</span>
-              <span className="font-medium">{formatCurrency(grossValue)}</span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>Comissão (calculada)</span>
-              <span>− {formatCurrency(impliedCommission)}</span>
-            </div>
+          {/* Total vendido */}
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Total vendido</span>
+            <span className="font-medium">{formatCurrency(grossValue)}</span>
           </div>
 
+          {/* Comissão com % editável */}
           <div className="space-y-1">
-            <Label className="text-sm font-medium">Líquido a receber (editável)</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-              <Input
-                className="pl-8 text-lg font-bold text-green-600"
-                value={netValue}
-                onChange={(e) => setNetValue(e.target.value)}
-                type="number"
-                min={0}
-                step={0.01}
-              />
+            <Label className="text-sm">Comissão da revendedora</Label>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 w-28">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  value={commissionPct}
+                  onChange={(e) => setCommissionPct(e.target.value)}
+                  className="text-center"
+                />
+                <span className="text-sm text-muted-foreground shrink-0">%</span>
+              </div>
+              <span className="text-muted-foreground text-sm">=</span>
+              <span className="text-orange-600 font-semibold">{formatCurrency(commissionValue)}</span>
             </div>
           </div>
 
+          {/* Líquido */}
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 flex justify-between items-center">
+            <span className="text-sm font-medium">Líquido a receber</span>
+            <span className="text-xl font-bold text-green-600">{formatCurrency(netValue)}</span>
+          </div>
+
+          {/* Forma de pagamento */}
           <div className="space-y-1">
             <Label className="text-sm">Forma de pagamento</Label>
             <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {paymentMethods.map((m) => (
                   <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
@@ -122,6 +132,7 @@ export function PostMovementSettlementDialog({ open, data, onClose }: Props) {
             </Select>
           </div>
 
+          {/* Observações */}
           <div className="space-y-1">
             <Label className="text-sm">Observações (opcional)</Label>
             <Input
@@ -132,13 +143,11 @@ export function PostMovementSettlementDialog({ open, data, onClose }: Props) {
           </div>
 
           <div className="flex gap-2 pt-1">
-            <Button variant="outline" className="flex-1" onClick={onClose}>
-              Não agora
-            </Button>
+            <Button variant="outline" className="flex-1" onClick={onClose}>Não agora</Button>
             <Button
               className="flex-1"
               onClick={() => mutation.mutate()}
-              disabled={mutation.isPending || parsedNet <= 0}
+              disabled={mutation.isPending || netValue <= 0}
             >
               {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Registrar acerto

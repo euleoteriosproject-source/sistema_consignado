@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Loader2, ChevronRight, ChevronLeft } from "lucide-react";
 import { resellersApi } from "@/lib/api/resellers";
 import { settingsApi } from "@/lib/api/settings";
+import type { UserProfile } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,9 @@ const maskPhone = (v: string) => {
 
 const maskCep = (v: string) =>
   v.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d{1,3})/, "$1-$2");
+
+const maskUF = (v: string) =>
+  v.replace(/[^a-zA-Z]/g, "").slice(0, 2).toUpperCase();
 
 const schema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -60,8 +64,15 @@ type FormData = z.infer<typeof schema>;
 const TABS = ["basic", "address", "social", "refs"] as const;
 type Tab = typeof TABS[number];
 
-const TAB_FIELDS: Record<Tab, (keyof FormData)[]> = {
+const TAB_FIELDS_OWNER: Record<Tab, (keyof FormData)[]> = {
   basic: ["name", "phone", "managerId", "cpf"],
+  address: ["addressStreet", "addressNumber", "addressNeighborhood", "addressCity", "addressState", "addressZip"],
+  social: [],
+  refs: ["reference1Name", "reference1Phone"],
+};
+
+const TAB_FIELDS_MANAGER: Record<Tab, (keyof FormData)[]> = {
+  basic: ["name", "phone", "cpf"],
   address: ["addressStreet", "addressNumber", "addressNeighborhood", "addressCity", "addressState", "addressZip"],
   social: [],
   refs: ["reference1Name", "reference1Phone"],
@@ -78,10 +89,18 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
   const isEdit = !!reseller;
   const [tab, setTab] = useState<Tab>("basic");
 
+  const { data: profile } = useQuery<UserProfile>({
+    queryKey: ["profile"],
+    queryFn: settingsApi.profile,
+    enabled: open,
+  });
+
+  const isManager = profile?.role === "manager";
+
   const { data: managers } = useQuery({
     queryKey: ["managers"],
     queryFn: settingsApi.managers,
-    enabled: open,
+    enabled: open && !isManager,
   });
 
   const { register, handleSubmit, setValue, watch, reset, trigger, formState: { errors } } = useForm<FormData>({
@@ -90,35 +109,45 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
 
   useEffect(() => {
     if (open) setTab("basic");
+    if (!reseller && isManager && profile?.id) {
+      setValue("managerId", profile.id);
+    }
     if (reseller) {
       reset({
         name: reseller.name,
-        phone: reseller.phone,
+        phone: maskPhone(reseller.phone ?? ""),
         managerId: reseller.managerId,
-        cpf: reseller.cpf ?? "",
+        cpf: maskCpf(reseller.cpf ?? ""),
         birthDate: reseller.birthDate ?? "",
-        phone2: reseller.phone2 ?? "",
+        phone2: maskPhone(reseller.phone2 ?? ""),
         email: reseller.email ?? "",
         addressStreet: reseller.addressStreet ?? "",
         addressNumber: reseller.addressNumber ?? "",
         addressComplement: reseller.addressComplement ?? "",
         addressNeighborhood: reseller.addressNeighborhood ?? "",
         addressCity: reseller.addressCity ?? "",
-        addressState: reseller.addressState ?? "",
-        addressZip: reseller.addressZip ?? "",
+        addressState: maskUF(reseller.addressState ?? ""),
+        addressZip: maskCep(reseller.addressZip ?? ""),
         instagram: reseller.instagram ?? "",
         facebook: reseller.facebook ?? "",
         tiktok: reseller.tiktok ?? "",
         reference1Name: reseller.reference1Name ?? "",
-        reference1Phone: reseller.reference1Phone ?? "",
+        reference1Phone: maskPhone(reseller.reference1Phone ?? ""),
         reference2Name: reseller.reference2Name ?? "",
-        reference2Phone: reseller.reference2Phone ?? "",
+        reference2Phone: maskPhone(reseller.reference2Phone ?? ""),
         notes: reseller.notes ?? "",
       });
     } else {
       reset({});
     }
-  }, [reseller, open, reset]);
+  }, [reseller, open, reset, isManager, profile?.id, setValue]);
+
+  // Garante que managerId é setado quando o perfil carrega após o modal abrir
+  useEffect(() => {
+    if (open && !reseller && isManager && profile?.id) {
+      setValue("managerId", profile.id, { shouldValidate: true });
+    }
+  }, [profile?.id, isManager, open, reseller, setValue]);
 
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
@@ -142,6 +171,7 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
   const isLastTab = tabIndex === TABS.length - 1;
 
   const handleAdvance = async () => {
+    const TAB_FIELDS = isManager ? TAB_FIELDS_MANAGER : TAB_FIELDS_OWNER;
     const fields = TAB_FIELDS[tab];
     if (fields.length > 0) {
       const ok = await trigger(fields);
@@ -189,20 +219,22 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
                   <Label>Telefone 2</Label>
                   <Input placeholder="(11) 99999-9999" {...register("phone2")} onChange={(e) => { e.target.value = maskPhone(e.target.value); register("phone2").onChange(e); }} />
                 </div>
-                <div className="space-y-1">
-                  <Label>Gestor(a) responsável *</Label>
-                  <Select value={managerValue} onValueChange={(v) => setValue("managerId", v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um(a) gestor(a)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {managers?.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.managerId && <p className="text-xs text-destructive">{errors.managerId.message}</p>}
-                </div>
+                {!isManager && (
+                  <div className="space-y-1">
+                    <Label>Gestor(a) responsável *</Label>
+                    <Select value={managerValue} onValueChange={(v) => setValue("managerId", v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um(a) gestor(a)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {managers?.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.managerId && <p className="text-xs text-destructive">{errors.managerId.message}</p>}
+                  </div>
+                )}
                 <div className="space-y-1">
                   <Label>E-mail</Label>
                   <Input type="email" placeholder="Opcional" {...register("email")} />
@@ -252,7 +284,7 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
                 </div>
                 <div className="space-y-1">
                   <Label>Estado (UF) *</Label>
-                  <Input maxLength={2} placeholder="SP" {...register("addressState")} />
+                  <Input maxLength={2} placeholder="SP" {...register("addressState")} onChange={(e) => { e.target.value = maskUF(e.target.value); register("addressState").onChange(e); }} />
                   {errors.addressState && <p className="text-xs text-destructive">{errors.addressState.message}</p>}
                 </div>
                 <div className="space-y-1">

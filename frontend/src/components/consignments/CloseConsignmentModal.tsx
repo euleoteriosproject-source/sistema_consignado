@@ -18,6 +18,7 @@ interface Props {
   consignmentId: string;
   resellerId: string;
   items: ConsignmentItem[];
+  alreadySettledGross?: number;
   onSettled: () => void;
   onSettlementOffer: (data: SettlementOfferData) => void;
 }
@@ -30,7 +31,7 @@ interface ItemReconciliation {
 }
 
 export function CloseConsignmentModal({
-  open, onClose, consignmentId, resellerId, items, onSettled, onSettlementOffer,
+  open, onClose, consignmentId, resellerId, items, alreadySettledGross = 0, onSettled, onSettlementOffer,
 }: Props) {
   const queryClient = useQueryClient();
 
@@ -88,16 +89,32 @@ export function CloseConsignmentModal({
       queryClient.invalidateQueries({ queryKey: ["consignments"] });
       toast.success("Lote encerrado!");
 
-      const soldRecs = reconciliations.filter((r) => r.sold > 0);
-      if (soldRecs.length > 0) {
-        const soldLines = soldRecs.map((r) => {
-          const item = pendingItems.find((i) => i.id === r.itemId)!;
-          return { productName: item.productName, qty: r.sold, unitPrice: item.salePrice, commissionRate: item.commissionRate };
-        });
-        const grossValue = soldLines.reduce((s, l) => s + l.qty * l.unitPrice, 0);
-        const commissionValue = soldLines.reduce((s, l) => s + l.qty * l.unitPrice * (l.commissionRate / 100), 0);
+      // Calcula total a acertar: todos os itens vendidos no lote - o que já foi acertado
+      const allSoldLines = items.map((item) => {
+        const batchSold = reconciliations.find((r) => r.itemId === item.id)?.sold ?? 0;
+        const totalSold = item.quantitySold + batchSold;
+        return totalSold > 0
+          ? { productName: item.productName, qty: totalSold, unitPrice: item.salePrice, commissionRate: item.commissionRate }
+          : null;
+      }).filter(Boolean) as { productName: string; qty: number; unitPrice: number; commissionRate: number }[];
+
+      const totalGross = allSoldLines.reduce((s, l) => s + l.qty * l.unitPrice, 0);
+      const pendingGross = totalGross - alreadySettledGross;
+
+      if (pendingGross > 0.01) {
+        const commissionValue = allSoldLines.reduce((s, l) => s + l.qty * l.unitPrice * (l.commissionRate / 100), 0);
+        const alreadySettledCommission = alreadySettledGross > 0
+          ? commissionValue * (alreadySettledGross / totalGross)
+          : 0;
+        const pendingCommission = commissionValue - alreadySettledCommission;
         onClose();
-        onSettlementOffer({ consignmentId, resellerId, soldLines, grossValue, commissionValue, netValue: grossValue - commissionValue });
+        onSettlementOffer({
+          consignmentId, resellerId,
+          soldLines: allSoldLines,
+          grossValue: pendingGross,
+          commissionValue: pendingCommission,
+          netValue: pendingGross - pendingCommission,
+        });
       } else {
         onClose();
         onSettled();

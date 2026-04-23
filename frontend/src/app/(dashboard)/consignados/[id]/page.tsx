@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, TrendingUp, CheckCircle, Receipt, History, TrendingDown, RotateCcw, AlertTriangle, Package, Clock } from "lucide-react";
+import { ArrowLeft, TrendingUp, CheckCircle, Receipt, History, TrendingDown, RotateCcw, AlertTriangle, Clock, CircleDollarSign, AlertCircle } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MovementModal } from "@/components/consignments/MovementModal";
 import { PostMovementSettlementDialog } from "@/components/consignments/PostMovementSettlementDialog";
@@ -292,6 +292,12 @@ export default function ConsignmentDetailPage() {
 
   const totalSettledAmount = relatedSettlements.reduce((acc, s) => acc + s.netToReceive, 0);
   const totalCommissionPaid = relatedSettlements.reduce((acc, s) => acc + s.totalCommission, 0);
+  const totalSettledGross = relatedSettlements.reduce((acc, s) => acc + s.totalSoldValue, 0);
+  const pendingGross = Math.max(0, consignment.totalSoldValue - totalSettledGross);
+  const avgCommissionPct = consignment.totalSoldValue > 0
+    ? (consignment.items.reduce((s, i) => s + i.soldValue * (i.commissionRate / 100), 0) / consignment.totalSoldValue) * 100
+    : 30;
+  const pendingNet = pendingGross * (1 - avgCommissionPct / 100);
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
@@ -369,6 +375,57 @@ export default function ConsignmentDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Banner financeiro */}
+      {consignment.totalSoldValue > 0 && (
+        <div className={`rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-4 ${
+          pendingGross > 0.01
+            ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800"
+            : "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
+        }`}>
+          <div className="flex items-center gap-3 flex-1">
+            {pendingGross > 0.01
+              ? <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+              : <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />}
+            <div className="space-y-1 text-sm">
+              <p className={`font-semibold ${pendingGross > 0.01 ? "text-amber-800 dark:text-amber-400" : "text-green-800 dark:text-green-400"}`}>
+                {pendingGross > 0.01 ? "Acerto financeiro pendente" : "Tudo acertado!"}
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span>Total vendido: <strong>{formatCurrency(consignment.totalSoldValue)}</strong></span>
+                {totalSettledGross > 0 && <span>Já acertado: <strong>{formatCurrency(totalSettledGross)}</strong></span>}
+                {pendingGross > 0.01 && (
+                  <span className="text-amber-700 dark:text-amber-400 font-medium">
+                    Falta acertar: <strong>{formatCurrency(pendingGross)}</strong>
+                    {" "}(líq. est. {formatCurrency(pendingNet)})
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          {pendingGross > 0.01 && (
+            <Button
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white shrink-0"
+              onClick={() => {
+                const soldLines = consignment.items
+                  .filter((i) => i.soldValue > 0)
+                  .map((i) => ({ productName: i.productName, qty: i.quantitySold, unitPrice: i.salePrice, commissionRate: i.commissionRate }));
+                setSettlementOffer({
+                  consignmentId: id,
+                  resellerId: consignment.resellerId,
+                  soldLines,
+                  grossValue: pendingGross,
+                  commissionValue: pendingGross * (avgCommissionPct / 100),
+                  netValue: pendingNet,
+                });
+              }}
+            >
+              <CircleDollarSign className="h-4 w-4 mr-1" /> Fazer acerto
+            </Button>
+          )}
+        </div>
+      )}
 
       {consignment.notes && (
         <Card>
@@ -488,6 +545,7 @@ export default function ConsignmentDetailPage() {
           consignmentId={id}
           resellerId={consignment.resellerId}
           items={consignment.items}
+          alreadySettledGross={totalSettledGross}
           onSettled={() => setCloseOpen(false)}
           onSettlementOffer={(data) => setSettlementOffer(data)}
         />

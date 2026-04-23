@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { settingsApi } from "@/lib/api/settings";
+import { productCategoriesApi } from "@/lib/api/productCategories";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,8 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Building2, User } from "lucide-react";
+import { Loader2, Save, Building2, User, Tag, X, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 import type { TenantSettings, UserProfile } from "@/types";
 
 const profileSchema = z.object({
@@ -40,6 +42,32 @@ export default function ConfiguracoesPage() {
     values: profile ? { name: profile.name, phone: profile.phone ?? "" } : undefined,
   });
 
+  const [newCategory, setNewCategory] = useState("");
+
+  const { data: categories = [], isLoading: loadingCats } = useQuery({
+    queryKey: ["product-categories"],
+    queryFn: productCategoriesApi.list,
+  });
+
+  const createCategory = useMutation({
+    mutationFn: (name: string) => productCategoriesApi.create(name),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["product-categories"] });
+      setNewCategory("");
+      toast.success("Categoria criada!");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteCategory = useMutation({
+    mutationFn: (id: string) => productCategoriesApi.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["product-categories"] });
+      toast.success("Categoria removida.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const updateProfile = useMutation({
     mutationFn: (data: ProfileForm) => settingsApi.updateProfile(data),
     onSuccess: () => {
@@ -60,6 +88,9 @@ export default function ConfiguracoesPage() {
           </TabsTrigger>
           <TabsTrigger value="profile" className="gap-1.5">
             <User className="h-3.5 w-3.5" /> Meu Perfil
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="gap-1.5">
+            <Tag className="h-3.5 w-3.5" /> Categorias
           </TabsTrigger>
         </TabsList>
 
@@ -150,6 +181,54 @@ export default function ConfiguracoesPage() {
                   </form>
                 </div>
               ) : null}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* ── Categorias ── */}
+        <TabsContent value="categories">
+          <Card>
+            <CardHeader>
+              <CardTitle>Categorias de produtos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nova categoria..."
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && newCategory.trim() && createCategory.mutate(newCategory)}
+                />
+                <Button
+                  onClick={() => newCategory.trim() && createCategory.mutate(newCategory)}
+                  disabled={createCategory.isPending || !newCategory.trim()}
+                >
+                  {createCategory.isPending
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Plus className="h-4 w-4" />}
+                </Button>
+              </div>
+              {loadingCats ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((c) => (
+                    <div key={c.id} className="flex items-center gap-1 bg-muted px-3 py-1.5 rounded-full text-sm">
+                      <span>{c.name}</span>
+                      <button
+                        onClick={() => deleteCategory.mutate(c.id)}
+                        className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {categories.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Nenhuma categoria cadastrada.</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

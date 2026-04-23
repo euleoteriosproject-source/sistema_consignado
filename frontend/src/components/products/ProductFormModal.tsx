@@ -3,15 +3,17 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { productsApi } from "@/lib/api/products";
+import { productCategoriesApi } from "@/lib/api/productCategories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Product } from "@/types";
 
 const schema = z.object({
@@ -21,20 +23,9 @@ const schema = z.object({
   category: z.string().min(1, "Categoria é obrigatória"),
   salePrice: z.coerce.number().min(0, "Preço inválido"),
   costPrice: z.coerce.number().min(0).optional().or(z.literal("")),
-  commissionRate: z.coerce.number().min(0).max(100).optional().or(z.literal("")),
   description: z.string().optional(),
 });
 type FormData = z.infer<typeof schema>;
-
-const categories = [
-  { value: "anel", label: "Anel" },
-  { value: "colar", label: "Colar" },
-  { value: "brinco", label: "Brinco" },
-  { value: "pulseira", label: "Pulseira" },
-  { value: "tornozeleira", label: "Tornozeleira" },
-  { value: "conjunto", label: "Conjunto" },
-  { value: "outro", label: "Outro" },
-];
 
 interface Props {
   open: boolean;
@@ -46,12 +37,19 @@ export function ProductFormModal({ open, onClose, product }: Props) {
   const queryClient = useQueryClient();
   const isEdit = !!product;
 
+  const { data: categories = [], isLoading: loadingCats } = useQuery({
+    queryKey: ["product-categories"],
+    queryFn: productCategoriesApi.list,
+    enabled: open,
+  });
+
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { category: "outro", salePrice: 0, stockTotal: 0, commissionRate: 30 },
+    defaultValues: { salePrice: 0, stockTotal: 0 },
   });
 
   useEffect(() => {
+    if (!open) return;
     if (product) {
       reset({
         name: product.name,
@@ -60,13 +58,12 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         category: product.category,
         salePrice: product.salePrice,
         costPrice: product.costPrice ?? "",
-        commissionRate: product.commissionRate,
         description: product.description ?? "",
       });
     } else {
-      reset({ category: "outro", salePrice: 0, stockTotal: 0, commissionRate: 30 });
+      reset({ salePrice: 0, stockTotal: 0 });
     }
-  }, [product, reset]);
+  }, [product, open, reset]);
 
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
@@ -77,7 +74,6 @@ export function ProductFormModal({ open, onClose, product }: Props) {
         code: data.code || undefined,
         description: data.description || undefined,
         costPrice: data.costPrice !== "" ? data.costPrice : undefined,
-        commissionRate: data.commissionRate !== "" ? data.commissionRate : undefined,
         stockTotal: data.stockTotal,
       };
       return isEdit ? productsApi.update(product!.id, body) : productsApi.create(body);
@@ -117,14 +113,18 @@ export function ProductFormModal({ open, onClose, product }: Props) {
             </div>
             <div className="space-y-1">
               <Label>Categoria *</Label>
-              <Select value={categoryValue} onValueChange={(v) => setValue("category", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {loadingCats ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select value={categoryValue} onValueChange={(v) => setValue("category", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               {errors.category && <p className="text-xs text-destructive">{errors.category.message}</p>}
             </div>
             <div className="space-y-1">
@@ -135,10 +135,6 @@ export function ProductFormModal({ open, onClose, product }: Props) {
             <div className="space-y-1">
               <Label>Preço de custo (R$)</Label>
               <Input type="number" step="0.01" min={0} placeholder="Opcional" {...register("costPrice")} />
-            </div>
-            <div className="space-y-1">
-              <Label>Comissão (%)</Label>
-              <Input type="number" step="0.01" min={0} max={100} {...register("commissionRate")} />
             </div>
             <div className="col-span-2 space-y-1">
               <Label>Descrição</Label>

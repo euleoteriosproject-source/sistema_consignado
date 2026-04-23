@@ -16,4 +16,8 @@ export const productsApi = {
       method: "PATCH", body: JSON.stringify({ active }),
     }),
   tracking: (id: string) => apiFetch<ProductTracking>(`/api/v1/products/${id}/tracking`),
+  addStock: (id: string, quantity: number) =>
+    apiFetch<Product>(`/api/v1/products/${id}/stock-entry`, {
+      method: "POST", body: JSON.stringify({ quantity }),
+    }),
 };

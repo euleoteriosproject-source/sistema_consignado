@@ -46,12 +46,11 @@ export function SettlementFormModal({ open, onClose }: Props) {
     enabled: open,
   });
 
-  // Non-settled consignments for selected reseller
+  // All consignments for selected reseller (including settled — pode ter acerto financeiro pendente)
   const { data: consPage } = useQuery({
     queryKey: ["reseller-consignments-for-settlement", resellerId],
     queryFn: () => consignmentsApi.list({ resellerId, size: "50" }),
     enabled: open && !!resellerId,
-    select: (d) => ({ ...d, content: d.content.filter((c) => c.status !== "settled") }),
   });
 
   // Full details of the selected consignment

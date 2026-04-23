@@ -154,6 +154,19 @@ public class ProductService {
     }
 
     @Transactional
+    public ProductResponse addStock(UUID id, int quantity) {
+        if (quantity <= 0) throw new com.consignado.api.shared.exception.BusinessException("Quantidade deve ser maior que zero");
+        var tenantId = TenantContext.TENANT_ID.get();
+        var product = resolveProduct(id, tenantId);
+        product.setStockTotal(product.getStockTotal() + quantity);
+        product.setStockAvailable(product.getStockAvailable() + quantity);
+        var saved = productRepository.save(product);
+        var images = imageRepository.findByProductIdOrderByDisplayOrder(id);
+        log.info("Stock entry: product={} qty={} newTotal={}", id, quantity, saved.getStockTotal());
+        return toResponse(saved, images);
+    }
+
+    @Transactional
     public void updateStatus(UUID id, boolean active) {
         var tenantId = TenantContext.TENANT_ID.get();
         var product = resolveProduct(id, tenantId);

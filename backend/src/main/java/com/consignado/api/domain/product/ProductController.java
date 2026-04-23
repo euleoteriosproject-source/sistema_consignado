@@ -80,6 +80,14 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
+    @PostMapping("/{id}/stock-entry")
+    public ResponseEntity<ApiResponse<ProductResponse>> addStock(
+        @PathVariable UUID id,
+        @RequestBody java.util.Map<String, Integer> body
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(productService.addStock(id, body.get("quantity"))));
+    }
+
     @GetMapping("/{id}/tracking")
     public ResponseEntity<ApiResponse<ProductTrackingResponse>> getTracking(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.ok(productService.getTracking(id)));
