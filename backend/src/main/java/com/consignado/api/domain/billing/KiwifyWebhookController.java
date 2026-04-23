@@ -26,15 +26,17 @@ public class KiwifyWebhookController {
     @PostMapping
     public ResponseEntity<Void> handle(
             @RequestBody JsonNode payload,
-            @RequestParam(required = false) String token) {
+            @RequestParam(required = false) String token,
+            jakarta.servlet.http.HttpServletRequest request) {
+
+        log.info("Kiwify webhook payload completo: {}", payload);
+        log.info("Kiwify webhook query token: {}", token);
+        log.info("Kiwify webhook header X-Kiwify-Token: {}", request.getHeader("X-Kiwify-Token"));
+        log.info("Kiwify webhook header Authorization: {}", request.getHeader("Authorization"));
 
         String expectedToken = appProperties.kiwify().webhookToken();
         String receivedToken = token != null ? token
             : (payload.has("token") ? payload.get("token").asText() : "");
-
-        log.info("Kiwify webhook: expectedToken={} receivedToken={} queryParam={} bodyToken={}",
-            expectedToken, receivedToken, token,
-            payload.has("token") ? payload.get("token").asText() : "N/A");
 
         if (!expectedToken.equals(receivedToken)) {
             log.warn("Kiwify webhook: token inválido - esperado={} recebido={}", expectedToken, receivedToken);
