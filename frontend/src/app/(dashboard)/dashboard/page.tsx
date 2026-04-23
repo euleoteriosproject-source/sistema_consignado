@@ -19,16 +19,22 @@ export default function DashboardPage() {
   const { data: summary, isLoading: loadingSummary } = useQuery<DashboardSummary>({
     queryKey: ["dashboard-summary"],
     queryFn: dashboardApi.summary,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const { data: alerts } = useQuery<DashboardAlert[]>({
     queryKey: ["dashboard-alerts"],
     queryFn: dashboardApi.alerts,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const { data: charts } = useQuery<DashboardChartData>({
     queryKey: ["dashboard-charts", "6m"],
     queryFn: () => dashboardApi.charts("6m"),
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   return (

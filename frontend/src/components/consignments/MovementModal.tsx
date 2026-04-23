@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, ShoppingCart, RotateCcw, AlertTriangle, Info } from "lucide-react";
@@ -44,6 +44,14 @@ export function MovementModal({ open, onClose, consignmentId, resellerId, items,
   const [movements, setMovements] = useState<Movement[]>(() =>
     openItems.map((i) => ({ itemId: i.id, quantitySold: 0, quantityReturned: 0, quantityLost: 0 }))
   );
+
+  useEffect(() => {
+    if (open) {
+      setMovementDate(new Date().toISOString().split("T")[0]);
+      setMovements(openItems.map((i) => ({ itemId: i.id, quantitySold: 0, quantityReturned: 0, quantityLost: 0 })));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const set = (idx: number, key: keyof Movement, val: number) =>
     setMovements((p) => p.map((m, i) => {

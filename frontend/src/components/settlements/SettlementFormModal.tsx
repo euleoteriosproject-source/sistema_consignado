@@ -34,7 +34,7 @@ export function SettlementFormModal({ open, onClose }: Props) {
   const [resellerId, setResellerId] = useState("");
   const [consignmentId, setConsignmentId] = useState("none");
   const [totalInput, setTotalInput] = useState("");
-  const [commissionPct, setCommissionPct] = useState("30");
+  const [commissionPct, setCommissionPct] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [settlementDate, setSettlementDate] = useState(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = useState("");

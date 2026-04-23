@@ -30,11 +30,7 @@ export function PostMovementSettlementDialog({ open, data, onClose }: Props) {
   const queryClient = useQueryClient();
   const grossValue = data.grossValue;
 
-  const defaultPct = grossValue > 0
-    ? ((data.commissionValue / grossValue) * 100).toFixed(1)
-    : "30";
-
-  const [commissionPct, setCommissionPct] = useState(defaultPct);
+  const [commissionPct, setCommissionPct] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [notes, setNotes] = useState("");
 
