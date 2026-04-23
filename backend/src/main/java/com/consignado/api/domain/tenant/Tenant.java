@@ -5,6 +5,9 @@ import java.util.UUID;
 
 import com.consignado.api.shared.entity.TimestampedEntity;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -47,6 +50,7 @@ public class Tenant extends TimestampedEntity {
     @Column(name = "trial_ends_at")
     private OffsetDateTime trialEndsAt;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "JSONB")
     private String settings = "{\"default_commission_rate\":30,\"default_return_days\":30,\"block_new_lot_if_overdue\":true}";
 
