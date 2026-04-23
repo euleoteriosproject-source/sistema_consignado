@@ -72,6 +72,10 @@ public class SupabaseAuthAdminService {
 
             try (var response = httpClient.newCall(request).execute()) {
                 String responseBody = response.body() != null ? response.body().string() : "";
+                if (response.code() == 422 && responseBody.contains("email_exists")) {
+                    log.info("Supabase: email já existe, buscando UUID existente para email={}", email);
+                    return findExistingUserUid(email);
+                }
                 if (!response.isSuccessful()) {
                     log.warn("Supabase invite user failed: status={} body={}", response.code(), responseBody);
                     throw new BusinessException("Erro ao enviar convite Supabase: " + response.code());
@@ -81,6 +85,28 @@ public class SupabaseAuthAdminService {
             }
         } catch (IOException e) {
             throw new BusinessException("Falha ao comunicar com Supabase Auth: " + e.getMessage());
+        }
+    }
+
+    private UUID findExistingUserUid(String email) throws IOException {
+        String url = appProperties.supabase().url() + "/auth/v1/admin/users?email=" + email + "&per_page=1";
+        Request request = new Request.Builder()
+            .url(url)
+            .get()
+            .addHeader("Authorization", "Bearer " + appProperties.supabase().serviceRoleKey())
+            .addHeader("apikey", appProperties.supabase().serviceRoleKey())
+            .build();
+        try (var response = httpClient.newCall(request).execute()) {
+            String responseBody = response.body() != null ? response.body().string() : "";
+            if (!response.isSuccessful()) {
+                throw new BusinessException("Erro ao buscar usuário Supabase: " + response.code());
+            }
+            var json = objectMapper.readTree(responseBody);
+            var users = json.get("users");
+            if (users != null && users.isArray() && users.size() > 0) {
+                return UUID.fromString(users.get(0).get("id").asText());
+            }
+            throw new BusinessException("Usuário não encontrado no Supabase para email: " + email);
         }
     }
 
