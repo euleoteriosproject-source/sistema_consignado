@@ -62,6 +62,7 @@ public class SupabaseAuthAdminService {
         try {
             ObjectNode body = objectMapper.createObjectNode();
             body.put("email", email);
+            body.put("redirect_to", appProperties.frontendUrl() + "/login/nova-senha");
 
             Request request = new Request.Builder()
                 .url(url)

@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.consignado.api.domain.reseller.ResellerRepository;
 import com.consignado.api.domain.settings.SettingsService;
 import com.consignado.api.domain.settings.dto.CreateManagerRequest;
 import com.consignado.api.domain.tenant.Tenant;
@@ -30,6 +31,7 @@ class SettingsServiceTest {
 
     @Mock private TenantRepository tenantRepository;
     @Mock private UserRepository userRepository;
+    @Mock private ResellerRepository resellerRepository;
     @Mock private ObjectMapper objectMapper;
     @Mock private SupabaseAuthAdminService supabaseAuthAdminService;
     @InjectMocks private SettingsService settingsService;
@@ -98,6 +100,7 @@ class SettingsServiceTest {
         var manager = buildManager();
 
         when(userRepository.findById(manager.getId())).thenReturn(Optional.of(manager));
+        when(resellerRepository.countByManagerIdAndDeletedAtIsNull(manager.getId())).thenReturn(0L);
 
         ScopedValue.runWhere(TenantContext.TENANT_ID, TENANT_ID,
             () -> ScopedValue.runWhere(TenantContext.USER_ID, USER_ID,
@@ -105,6 +108,20 @@ class SettingsServiceTest {
                     () -> settingsService.updateManagerStatus(manager.getId(), false))));
 
         verify(userRepository).save(argThat(u -> !u.isActive()));
+    }
+
+    @Test
+    void updateManagerStatus_withResellers_throwsBusinessException() {
+        var manager = buildManager();
+
+        when(userRepository.findById(manager.getId())).thenReturn(Optional.of(manager));
+        when(resellerRepository.countByManagerIdAndDeletedAtIsNull(manager.getId())).thenReturn(3L);
+
+        assertThrows(BusinessException.class, () ->
+            ScopedValue.runWhere(TenantContext.TENANT_ID, TENANT_ID,
+                () -> ScopedValue.runWhere(TenantContext.USER_ID, USER_ID,
+                    () -> ScopedValue.runWhere(TenantContext.ROLE, "owner",
+                        () -> settingsService.updateManagerStatus(manager.getId(), false)))));
     }
 
     // ---- builders ----

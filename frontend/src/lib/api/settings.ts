@@ -15,4 +15,10 @@ export const settingsApi = {
     apiFetch<void>(`/api/v1/settings/managers/${id}/status`, {
       method: "PATCH", body: JSON.stringify({ active }),
     }),
+  transferResellers: (fromId: string, targetManagerId: string) =>
+    apiFetch<void>(`/api/v1/settings/managers/${fromId}/transfer`, {
+      method: "POST", body: JSON.stringify({ targetManagerId }),
+    }),
+  deleteManager: (id: string) =>
+    apiFetch<void>(`/api/v1/settings/managers/${id}`, { method: "DELETE" }),
 };

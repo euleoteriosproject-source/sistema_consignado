@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -81,6 +82,23 @@ public class SettingsController {
     ) {
         requireOwner();
         settingsService.updateManagerStatus(id, request.active());
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/managers/{id}/transfer")
+    public ResponseEntity<ApiResponse<Void>> transferResellers(
+        @PathVariable UUID id,
+        @RequestBody java.util.Map<String, UUID> body
+    ) {
+        requireOwner();
+        settingsService.transferResellers(id, body.get("targetManagerId"));
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @DeleteMapping("/managers/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteManager(@PathVariable UUID id) {
+        requireOwner();
+        settingsService.deleteManager(id);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 

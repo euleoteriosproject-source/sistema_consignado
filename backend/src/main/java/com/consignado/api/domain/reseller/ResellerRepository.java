@@ -20,4 +20,8 @@ public interface ResellerRepository extends JpaRepository<Reseller, UUID>, JpaSp
     long countByTenantIdAndStatusAndDeletedAtIsNull(UUID tenantId, String status);
 
     long countByManagerIdAndStatusAndDeletedAtIsNull(UUID managerId, String status);
+
+    long countByManagerIdAndDeletedAtIsNull(UUID managerId);
+
+    List<Reseller> findByManagerIdAndDeletedAtIsNull(UUID managerId);
 }

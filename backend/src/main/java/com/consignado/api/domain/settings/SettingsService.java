@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.consignado.api.domain.reseller.ResellerRepository;
 import com.consignado.api.domain.settings.dto.CreateManagerRequest;
 import com.consignado.api.domain.settings.dto.ManagerResponse;
 import com.consignado.api.domain.settings.dto.ProfileResponse;
@@ -34,6 +35,7 @@ public class SettingsService {
 
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
+    private final ResellerRepository resellerRepository;
     private final ObjectMapper objectMapper;
     private final SupabaseAuthAdminService supabaseAuthAdminService;
 
@@ -82,10 +84,10 @@ public class SettingsService {
             throw new BusinessException("E-mail já cadastrado neste tenant");
         }
 
-        // Cria conta no Supabase Auth — convite por email ou senha manual
-        UUID supabaseUid = (request.password() != null && !request.password().isBlank())
-            ? supabaseAuthAdminService.createUser(request.email(), request.password())
-            : supabaseAuthAdminService.inviteUser(request.email());
+        boolean isInvite = request.password() == null || request.password().isBlank();
+        UUID supabaseUid = isInvite
+            ? supabaseAuthAdminService.inviteUser(request.email())
+            : supabaseAuthAdminService.createUser(request.email(), request.password());
 
         var user = new User();
         user.setTenantId(tenantId);
@@ -94,7 +96,7 @@ public class SettingsService {
         user.setEmail(request.email());
         user.setPhone(request.phone());
         user.setRole("manager");
-        user.setActive(true);
+        user.setActive(!isInvite); // convite = inativo até aceitar
 
         var saved = userRepository.save(user);
         log.info("Manager created id={} tenant={}", saved.getId(), tenantId);
@@ -127,9 +129,49 @@ public class SettingsService {
         var user = userRepository.findById(managerId)
             .filter(u -> u.getTenantId().equals(tenantId) && "manager".equals(u.getRole()))
             .orElseThrow(() -> new ResourceNotFoundException("Gestora", managerId));
+
+        if (!active) {
+            long count = resellerRepository.countByManagerIdAndDeletedAtIsNull(managerId);
+            if (count > 0) {
+                throw new BusinessException(
+                    "Este(a) gestor(a) possui " + count + " revendedor(es) vinculado(s). Transfira-os antes de desativar.");
+            }
+        }
+
         user.setActive(active);
         userRepository.save(user);
         log.info("Manager status updated id={} active={}", managerId, active);
+    }
+
+    @Transactional
+    public void transferResellers(UUID fromManagerId, UUID toManagerId) {
+        var tenantId = TenantContext.TENANT_ID.get();
+        userRepository.findById(toManagerId)
+            .filter(u -> u.getTenantId().equals(tenantId) && "manager".equals(u.getRole()))
+            .orElseThrow(() -> new ResourceNotFoundException("Gestor(a) destino", toManagerId));
+
+        var resellers = resellerRepository.findByManagerIdAndDeletedAtIsNull(fromManagerId);
+        resellers.forEach(r -> r.setManagerId(toManagerId));
+        resellerRepository.saveAll(resellers);
+        log.info("Transferred {} resellers from manager={} to manager={}", resellers.size(), fromManagerId, toManagerId);
+    }
+
+    @Transactional
+    public void deleteManager(UUID managerId) {
+        var tenantId = TenantContext.TENANT_ID.get();
+        var user = userRepository.findById(managerId)
+            .filter(u -> u.getTenantId().equals(tenantId) && "manager".equals(u.getRole()))
+            .orElseThrow(() -> new ResourceNotFoundException("Gestora", managerId));
+
+        long count = resellerRepository.countByManagerIdAndDeletedAtIsNull(managerId);
+        if (count > 0) {
+            throw new BusinessException(
+                "Este(a) gestor(a) possui " + count + " revendedor(es). Transfira-os antes de excluir.");
+        }
+
+        supabaseAuthAdminService.deleteUser(user.getSupabaseUid());
+        userRepository.delete(user);
+        log.info("Manager deleted id={} tenant={}", managerId, tenantId);
     }
 
     private Tenant loadTenant() {
