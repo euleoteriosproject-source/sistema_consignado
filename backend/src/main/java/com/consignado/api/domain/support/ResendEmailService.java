@@ -26,7 +26,7 @@ public class ResendEmailService {
     private final ObjectMapper objectMapper;
 
     public void sendSupportTicketEmail(String tenantName, String subject, String description,
-                                       String priority, String ticketId) {
+                                       String priority, String ticketId, String replyToEmail) {
         AppProperties.ResendProperties cfg = appProperties.resend();
         if (cfg == null || cfg.apiKey() == null || cfg.apiKey().isBlank()
                 || cfg.apiKey().equals("disabled")) {
@@ -56,6 +56,7 @@ public class ResendEmailService {
             ObjectNode body = objectMapper.createObjectNode();
             body.put("from", cfg.fromEmail());
             body.put("to", cfg.supportEmail());
+            body.put("reply_to", replyToEmail);
             body.put("subject", "[Suporte %s] %s — %s".formatted(priorityLabel, tenantName, subject));
             body.put("html", html);
 

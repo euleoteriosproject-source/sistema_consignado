@@ -2,8 +2,12 @@ package com.consignado.api.domain.support;
 
 import java.util.List;
 
+import java.util.UUID;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +41,15 @@ public class SupportController {
     public ResponseEntity<ApiResponse<List<SupportTicketResponse>>> list() {
         requireOwner();
         return ResponseEntity.ok(ApiResponse.ok(supportService.list()));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<SupportTicketResponse>> updateStatus(
+        @PathVariable UUID id,
+        @RequestBody java.util.Map<String, String> body
+    ) {
+        requireOwner();
+        return ResponseEntity.ok(ApiResponse.ok(supportService.updateStatus(id, body.get("status"))));
     }
 
     private void requireOwner() {

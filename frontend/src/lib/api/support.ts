@@ -8,4 +8,9 @@ export const supportApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  updateStatus: (id: string, status: string) =>
+    apiFetch<SupportTicket>(`/api/v1/support/tickets/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
 };

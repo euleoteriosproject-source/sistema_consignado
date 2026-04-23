@@ -9,7 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.consignado.api.domain.support.dto.CreateSupportTicketRequest;
 import com.consignado.api.domain.support.dto.SupportTicketResponse;
 import com.consignado.api.domain.tenant.TenantRepository;
+import com.consignado.api.domain.user.UserRepository;
 import com.consignado.api.multitenancy.TenantContext;
+import com.consignado.api.shared.exception.BusinessException;
 import com.consignado.api.shared.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ public class SupportService {
 
     private final SupportTicketRepository ticketRepository;
     private final TenantRepository tenantRepository;
+    private final UserRepository userRepository;
     private final ResendEmailService resendEmailService;
 
     @Transactional
@@ -42,9 +45,23 @@ public class SupportService {
         var saved = ticketRepository.save(ticket);
         log.info("Support ticket created id={} tenant={}", saved.getId(), tenantId);
 
-        sendEmailAsync(tenant.getName(), saved);
+        var ownerEmail = userRepository.findById(userId).map(u -> u.getEmail()).orElse("");
+        sendEmailAsync(tenant.getName(), saved, ownerEmail);
 
         return toResponse(saved);
+    }
+
+    @Transactional
+    public SupportTicketResponse updateStatus(java.util.UUID ticketId, String status) {
+        var tenantId = TenantContext.TENANT_ID.get();
+        if (!java.util.List.of("open", "in_progress", "resolved").contains(status)) {
+            throw new BusinessException("Status inválido: " + status);
+        }
+        var ticket = ticketRepository.findById(ticketId)
+            .filter(t -> t.getTenantId().equals(tenantId))
+            .orElseThrow(() -> new ResourceNotFoundException("Chamado", ticketId));
+        ticket.setStatus(status);
+        return toResponse(ticketRepository.save(ticket));
     }
 
     @Transactional(readOnly = true)
@@ -55,10 +72,10 @@ public class SupportService {
     }
 
     @Async
-    protected void sendEmailAsync(String tenantName, SupportTicket ticket) {
+    protected void sendEmailAsync(String tenantName, SupportTicket ticket, String replyToEmail) {
         resendEmailService.sendSupportTicketEmail(
             tenantName, ticket.getSubject(), ticket.getDescription(),
-            ticket.getPriority(), ticket.getId().toString()
+            ticket.getPriority(), ticket.getId().toString(), replyToEmail
         );
     }
 

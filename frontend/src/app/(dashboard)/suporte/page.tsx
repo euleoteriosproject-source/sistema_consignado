@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { supportApi } from "@/lib/api/support";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -103,17 +104,27 @@ function NewTicketDialog({ onClose }: { onClose: () => void }) {
 }
 
 function TicketCard({ ticket }: { ticket: SupportTicket }) {
+  const qc = useQueryClient();
   const [expanded, setExpanded] = useState(false);
-  const priority = priorityConfig[ticket.priority] ?? priorityConfig.medium;
-  const status   = statusConfig[ticket.status]     ?? statusConfig.open;
+  const priority   = priorityConfig[ticket.priority] ?? priorityConfig.medium;
+  const status     = statusConfig[ticket.status]     ?? statusConfig.open;
   const StatusIcon = status.icon;
 
+  const resolve = useMutation({
+    mutationFn: () => supportApi.updateStatus(ticket.id, "resolved"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["support-tickets"] });
+      toast.success("Chamado marcado como resolvido.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
-    <div
-      className="border rounded-lg p-4 space-y-2 cursor-pointer hover:bg-muted/30 transition-colors"
-      onClick={() => setExpanded((v) => !v)}
-    >
-      <div className="flex items-start justify-between gap-3">
+    <div className="border rounded-lg p-4 space-y-2">
+      <div
+        className="flex items-start justify-between gap-3 cursor-pointer"
+        onClick={() => setExpanded((v) => !v)}
+      >
         <div className="flex items-center gap-2 min-w-0">
           <StatusIcon className={`h-4 w-4 shrink-0 ${status.color}`} />
           <p className="font-medium text-sm truncate">{ticket.subject}</p>
@@ -125,9 +136,27 @@ function TicketCard({ ticket }: { ticket: SupportTicket }) {
       </div>
       <p className="text-xs text-muted-foreground">{formatDate(ticket.createdAt)}</p>
       {expanded && (
-        <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap border-t pt-2">
-          {ticket.description}
-        </p>
+        <>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap border-t pt-2">
+            {ticket.description}
+          </p>
+          {ticket.status !== "resolved" && (
+            <div className="flex justify-end pt-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-green-600 border-green-300 hover:bg-green-50"
+                onClick={() => resolve.mutate()}
+                disabled={resolve.isPending}
+              >
+                {resolve.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  : <CheckCircle className="h-3.5 w-3.5 mr-1" />}
+                Marcar como resolvido
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
