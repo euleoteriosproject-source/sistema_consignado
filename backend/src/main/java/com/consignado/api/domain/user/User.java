@@ -40,6 +40,9 @@ public class User extends TimestampedEntity {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(nullable = false)
+    private boolean invitePending = false;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -63,4 +66,7 @@ public class User extends TimestampedEntity {
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+
+    public boolean isInvitePending() { return invitePending; }
+    public void setInvitePending(boolean invitePending) { this.invitePending = invitePending; }
 }

@@ -9,5 +9,6 @@ public record ManagerResponse(
     String email,
     String phone,
     boolean active,
+    boolean invitePending,
     OffsetDateTime createdAt
 ) {}

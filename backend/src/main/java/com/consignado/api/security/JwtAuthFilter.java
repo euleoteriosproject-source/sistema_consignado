@@ -118,7 +118,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             userRepository.findBySupabaseUid(UUID.fromString(supabaseUid))
                 .ifPresentOrElse(user -> {
-                    if (!user.isActive()) return;
+                    if (!user.isActive() && !user.isInvitePending()) return;
+                    if (user.isInvitePending()) {
+                        user.setActive(true);
+                        user.setInvitePending(false);
+                        userRepository.save(user);
+                        log.info("Gestora ativada por primeiro login: user={}", user.getEmail());
+                    }
                     var details = new TenantUserDetails(
                         user.getTenantId(), user.getId(),
                         user.getEmail(), user.getRole(), user.getName()

@@ -96,7 +96,8 @@ public class SettingsService {
         user.setEmail(request.email());
         user.setPhone(request.phone());
         user.setRole("manager");
-        user.setActive(!isInvite); // convite = inativo até aceitar
+        user.setActive(!isInvite);
+        user.setInvitePending(isInvite);
 
         var saved = userRepository.save(user);
         log.info("Manager created id={} tenant={}", saved.getId(), tenantId);
@@ -139,6 +140,7 @@ public class SettingsService {
         }
 
         user.setActive(active);
+        if (active) user.setInvitePending(false);
         userRepository.save(user);
         log.info("Manager status updated id={} active={}", managerId, active);
     }
@@ -230,6 +232,6 @@ public class SettingsService {
 
     private ManagerResponse toManagerResponse(User u) {
         return new ManagerResponse(u.getId(), u.getName(), u.getEmail(), u.getPhone(),
-            u.isActive(), u.getCreatedAt());
+            u.isActive(), u.isInvitePending(), u.getCreatedAt());
     }
 }

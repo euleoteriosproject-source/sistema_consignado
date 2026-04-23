@@ -222,11 +222,13 @@ export default function GestoresPage() {
                       <TableCell>
                         {m.active ? (
                           <Badge variant="default">Ativo(a)</Badge>
-                        ) : (
+                        ) : m.invitePending ? (
                           <Badge variant="secondary" className="flex items-center gap-1 w-fit">
                             <Mail className="h-2.5 w-2.5" />
-                            {m.active === false ? "Aguardando convite" : "Inativo(a)"}
+                            Aguardando convite
                           </Badge>
+                        ) : (
+                          <Badge variant="secondary">Inativo(a)</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">

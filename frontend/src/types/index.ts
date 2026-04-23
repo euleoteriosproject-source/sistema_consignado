@@ -278,6 +278,7 @@ export interface Manager {
   email: string;
   phone: string | null;
   active: boolean;
+  invitePending: boolean;
   createdAt: string;
 }
 
