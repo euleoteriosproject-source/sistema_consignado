@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, TrendingUp, CheckCircle, Receipt, History, TrendingDown, RotateCcw, AlertTriangle, Clock, CircleDollarSign, AlertCircle } from "lucide-react";
+import { ArrowLeft, TrendingUp, CheckCircle, Receipt, History, TrendingDown, RotateCcw, AlertTriangle, Clock, CircleDollarSign, AlertCircle, Package } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MovementModal } from "@/components/consignments/MovementModal";
 import { PostMovementSettlementDialog } from "@/components/consignments/PostMovementSettlementDialog";
