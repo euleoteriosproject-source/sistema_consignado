@@ -7,7 +7,8 @@ public record AppProperties(
     String frontendUrl,
     SupabaseProperties supabase,
     JwtProperties jwt,
-    StripeProperties stripe
+    StripeProperties stripe,
+    KiwifyProperties kiwify
 ) {
 
     public record SupabaseProperties(
@@ -30,6 +31,4 @@ public record AppProperties(
     public record KiwifyProperties(
         String webhookToken
     ) {}
-
-    KiwifyProperties kiwify();
 }
