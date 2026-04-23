@@ -89,25 +89,36 @@ public class SupabaseAuthAdminService {
     }
 
     private UUID findExistingUserUid(String email) throws IOException {
-        String url = appProperties.supabase().url() + "/auth/v1/admin/users?email=" + email + "&per_page=1";
-        Request request = new Request.Builder()
-            .url(url)
-            .get()
-            .addHeader("Authorization", "Bearer " + appProperties.supabase().serviceRoleKey())
-            .addHeader("apikey", appProperties.supabase().serviceRoleKey())
-            .build();
-        try (var response = httpClient.newCall(request).execute()) {
-            String responseBody = response.body() != null ? response.body().string() : "";
-            if (!response.isSuccessful()) {
-                throw new BusinessException("Erro ao buscar usuário Supabase: " + response.code());
+        // Supabase admin API não filtra por email via query param —
+        // percorre as páginas buscando o email correto
+        int page = 1;
+        while (true) {
+            String url = appProperties.supabase().url()
+                + "/auth/v1/admin/users?per_page=50&page=" + page;
+            Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .addHeader("Authorization", "Bearer " + appProperties.supabase().serviceRoleKey())
+                .addHeader("apikey", appProperties.supabase().serviceRoleKey())
+                .build();
+            try (var response = httpClient.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                if (!response.isSuccessful()) {
+                    throw new BusinessException("Erro ao buscar usuário Supabase: " + response.code());
+                }
+                var json = objectMapper.readTree(responseBody);
+                var users = json.get("users");
+                if (users == null || !users.isArray() || users.size() == 0) break;
+                for (var u : users) {
+                    if (email.equalsIgnoreCase(u.path("email").asText())) {
+                        return UUID.fromString(u.get("id").asText());
+                    }
+                }
+                if (users.size() < 50) break;
+                page++;
             }
-            var json = objectMapper.readTree(responseBody);
-            var users = json.get("users");
-            if (users != null && users.isArray() && users.size() > 0) {
-                return UUID.fromString(users.get(0).get("id").asText());
-            }
-            throw new BusinessException("Usuário não encontrado no Supabase para email: " + email);
         }
+        throw new BusinessException("Usuário não encontrado no Supabase para email: " + email);
     }
 
     public void deleteUser(UUID supabaseUid) {

@@ -40,6 +40,11 @@ public class TenantProvisioningService {
 
         UUID supabaseUid = supabaseAuthAdminService.inviteUser(customerEmail);
 
+        if (userRepository.findBySupabaseUid(supabaseUid).isPresent()) {
+            log.info("Kiwify webhook: supabase_uid={} já vinculado a outro tenant, ignorando", supabaseUid);
+            return;
+        }
+
         var user = new User();
         user.setTenantId(savedTenant.getId());
         user.setSupabaseUid(supabaseUid);
