@@ -282,6 +282,15 @@ export interface Manager {
   createdAt: string;
 }
 
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  description: string;
+  priority: "low" | "medium" | "high";
+  status: "open" | "in_progress" | "resolved";
+  createdAt: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;

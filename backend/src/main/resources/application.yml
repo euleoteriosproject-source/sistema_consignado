@@ -67,6 +67,10 @@ app:
     webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_fake}
   kiwify:
     webhook-token: ${KIWIFY_WEBHOOK_TOKEN:changeme}
+  resend:
+    api-key: ${RESEND_API_KEY:disabled}
+    from-email: ${RESEND_FROM_EMAIL:suporte@seudominio.com.br}
+    support-email: ${SUPPORT_EMAIL:vinicius.euleoterio@hotmail.com}
 
 management:
   endpoints:

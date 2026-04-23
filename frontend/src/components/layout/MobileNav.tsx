@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Gem, LayoutDashboard, Users, Package, ShoppingBag, DollarSign, FileText, Settings, UserCog } from "lucide-react";
+import { Menu, X, Gem, LayoutDashboard, Users, Package, ShoppingBag, DollarSign, FileText, Settings, UserCog, LifeBuoy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -16,6 +16,7 @@ const ownerNav = [
   { href: "/financeiro", label: "Financeiro", icon: DollarSign },
   { href: "/relatorios", label: "Relatórios", icon: FileText },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
+  { href: "/suporte",       label: "Suporte",        icon: LifeBuoy },
 ];
 
 const managerNav = [

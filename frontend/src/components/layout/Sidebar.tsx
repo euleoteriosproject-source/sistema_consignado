@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Package, ShoppingBag,
-  DollarSign, FileText, Settings, Gem, UserCog,
+  DollarSign, FileText, Settings, Gem, UserCog, LifeBuoy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -17,6 +17,7 @@ const ownerNav = [
   { href: "/financeiro", label: "Financeiro", icon: DollarSign },
   { href: "/relatorios", label: "Relatórios", icon: FileText },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
+  { href: "/suporte",       label: "Suporte",        icon: LifeBuoy },
 ];
 
 const managerNav = [

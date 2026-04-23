@@ -8,7 +8,8 @@ public record AppProperties(
     SupabaseProperties supabase,
     JwtProperties jwt,
     StripeProperties stripe,
-    KiwifyProperties kiwify
+    KiwifyProperties kiwify,
+    ResendProperties resend
 ) {
 
     public record SupabaseProperties(
@@ -30,5 +31,11 @@ public record AppProperties(
 
     public record KiwifyProperties(
         String webhookToken
+    ) {}
+
+    public record ResendProperties(
+        String apiKey,
+        String fromEmail,
+        String supportEmail
     ) {}
 }
