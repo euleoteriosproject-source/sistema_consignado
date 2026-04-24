@@ -178,7 +178,7 @@ function ConsignadosPageInner() {
                         <TableCell className="font-medium">{c.resellerName}</TableCell>
                         <TableCell>
                           {c.consignmentType === "manager_stock"
-                            ? (userName ?? "Dono")
+                            ? (isOwner ? (userName ?? "Dono") : "Dono")
                             : c.managerName}
                         </TableCell>
                         <TableCell>{formatDate(c.deliveredAt)}</TableCell>

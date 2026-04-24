@@ -18,6 +18,7 @@ import { Plus, TrendingUp, DollarSign, Wallet, Clock, ExternalLink, Receipt, Ale
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { SettlementFormModal } from "@/components/settlements/SettlementFormModal";
 import { settingsApi } from "@/lib/api/settings";
+import { useAuthStore } from "@/stores/authStore";
 import type { PageResponse, Settlement, SettlementsSummary, ConsignmentSummary, Consignment, ResellerSummary, TenantSettings } from "@/types";
 
 const paymentLabel: Record<string, string> = {
@@ -229,6 +230,8 @@ ${settlement.notes ? `<div class="declaration"><strong>Obs.:</strong> ${settleme
 
 export default function FinanceiroPage() {
   const router = useRouter();
+  const role = useAuthStore((s) => s.role);
+  const isManager = role === "manager";
   const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
@@ -253,21 +256,38 @@ export default function FinanceiroPage() {
     queryFn: () => settlementsApi.list(settlementParams),
   });
 
+  // Lotes reseller em aberto (para revendedoras)
   const { data: openConsignmentsData, isLoading: loadingOpen } = useQuery<PageResponse<ConsignmentSummary>>({
-    queryKey: ["consignments-open-financial"],
-    queryFn: () => consignmentsApi.list({ size: "200" }),
+    queryKey: ["consignments-open-financial-reseller"],
+    queryFn: () => consignmentsApi.list({ size: "200", consignmentType: "reseller" }),
     select: (d) => ({
       ...d,
-      content: d.content.filter((c) => c.status === "open" || c.status === "partially_settled" || c.status === "overdue"),
+      content: d.content.filter((c) => ["open", "partially_settled", "overdue"].includes(c.status)),
     }),
   });
 
+  // Lotes manager_stock em aberto (recebidos do dono — só para gestora)
+  const { data: stockLotsData, isLoading: loadingStock } = useQuery<PageResponse<ConsignmentSummary>>({
+    queryKey: ["consignments-open-financial-stock"],
+    queryFn: () => consignmentsApi.list({ size: "200", consignmentType: "manager_stock" }),
+    select: (d) => ({
+      ...d,
+      content: d.content.filter((c) => ["open", "partially_settled", "overdue"].includes(c.status)),
+    }),
+    enabled: isManager,
+  });
+
   const openLots = openConsignmentsData?.content ?? [];
+  const stockLots = stockLotsData?.content ?? [];
+
+  // Valor em circulação = apenas lotes reseller (peças × preço, sem comissão)
   const totalEstimated = openLots.reduce((acc, c) => acc + (c.totalValue ?? 0), 0);
+
   const totalByReseller = openLots.reduce((acc, c) => {
-    if (!acc[c.resellerId]) acc[c.resellerId] = { name: c.resellerName, manager: c.managerName, estimated: 0, lots: 0 };
-    acc[c.resellerId].estimated += c.totalValue ?? 0;
-    acc[c.resellerId].lots += 1;
+    const key = c.resellerId ?? c.id;
+    if (!acc[key]) acc[key] = { name: c.resellerName, manager: c.managerName, estimated: 0, lots: 0 };
+    acc[key].estimated += c.totalValue ?? 0;
+    acc[key].lots += 1;
     return acc;
   }, {} as Record<string, { name: string; manager: string; estimated: number; lots: number }>);
   const resellerRows = Object.entries(totalByReseller).sort(([, a], [, b]) => b.estimated - a.estimated);
@@ -347,6 +367,14 @@ export default function FinanceiroPage() {
               <Badge variant="secondary" className="ml-1.5">{openLots.length}</Badge>
             )}
           </TabsTrigger>
+          {isManager && (
+            <TabsTrigger value="stock">
+              Acerto com dono
+              {stockLots.length > 0 && (
+                <Badge variant="secondary" className="ml-1.5">{stockLots.length}</Badge>
+              )}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="settlements">
@@ -510,6 +538,60 @@ export default function FinanceiroPage() {
             </Card>
           </div>
         </TabsContent>
+
+        {isManager && (
+          <TabsContent value="stock" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Lotes recebidos do dono — em aberto</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {loadingStock ? (
+                  <div className="p-4 space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+                ) : stockLots.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8 text-sm">Nenhum lote recebido do dono em aberto</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Retirada</TableHead>
+                          <TableHead className="text-right">Itens totais</TableHead>
+                          <TableHead className="text-right">Itens restantes</TableHead>
+                          <TableHead className="text-right">Val. Total</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {stockLots.map((c) => (
+                          <TableRow key={c.id}>
+                            <TableCell>{formatDate(c.deliveredAt)}</TableCell>
+                            <TableCell className="text-right">{c.totalItems}</TableCell>
+                            <TableCell className="text-right font-medium">
+                              {c.totalItems - c.totalSold - c.totalReturned - c.totalLost}
+                            </TableCell>
+                            <TableCell className="text-right text-orange-600 font-medium">{formatCurrency(c.totalValue ?? 0)}</TableCell>
+                            <TableCell>
+                              <Badge variant={consignmentStatusVariant[c.status] ?? "secondary"}>
+                                {consignmentStatusLabel[c.status] ?? c.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => router.push(`/consignados/${c.id}`)}>
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
       <SettlementFormModal open={modalOpen} onClose={() => setModalOpen(false)} />

@@ -36,6 +36,7 @@ export function ExtratoModal({ consignmentId, onClose }: Props) {
   const { data: s } = useQuery<TenantSettings>({
     queryKey: ["settings"],
     queryFn: settingsApi.get,
+    retry: false,   // não tenta retry se manager não tem acesso (403)
   });
   const { data: settlementsPage } = useQuery({
     queryKey: ["settlements-for-extrato", consignmentId, c?.resellerId],
@@ -167,7 +168,7 @@ ${settlementsHtml}
         <DialogHeader>
           <div className="flex items-center justify-between pr-6">
             <DialogTitle>Extrato de Consignação</DialogTitle>
-            <Button size="sm" onClick={handlePrint} disabled={!c || !s}>
+            <Button size="sm" onClick={handlePrint} disabled={!c}>
               <Printer className="h-4 w-4 mr-1" /> Imprimir extrato
             </Button>
           </div>
