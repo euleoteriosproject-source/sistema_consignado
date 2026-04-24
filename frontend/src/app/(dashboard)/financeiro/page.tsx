@@ -38,9 +38,9 @@ function SettlementDetailModal({ settlement, onClose }: { settlement: Settlement
     queryFn: () => consignmentsApi.get(settlement.consignmentId!),
     enabled: !!settlement.consignmentId,
   });
-  const { data: tenantSettings } = useQuery<TenantSettings>({
-    queryKey: ["settings"],
-    queryFn: settingsApi.get,
+  const { data: tenantSettings } = useQuery({
+    queryKey: ["settings-branding"],
+    queryFn: settingsApi.branding,
   });
 
   const commissionRate = settlement.totalSoldValue > 0

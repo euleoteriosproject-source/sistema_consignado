@@ -2,6 +2,7 @@ import { apiFetch, apiUpload } from "./client";
 import type { TenantSettings, Manager, UserProfile } from "@/types";
 
 export const settingsApi = {
+  branding: () => apiFetch<{ name: string; logoUrl: string | null; primaryColor: string | null }>("/api/v1/settings/branding"),
   get: () => apiFetch<TenantSettings>("/api/v1/settings"),
   update: (data: unknown) =>
     apiFetch<TenantSettings>("/api/v1/settings", { method: "PUT", body: JSON.stringify(data) }),

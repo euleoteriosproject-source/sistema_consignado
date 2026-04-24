@@ -43,6 +43,13 @@ public class SettingsService {
     private final SupabaseStorageService storageService;
 
     @Transactional(readOnly = true)
+    public com.consignado.api.domain.settings.dto.BrandingResponse getBranding() {
+        var tenant = loadTenant();
+        return new com.consignado.api.domain.settings.dto.BrandingResponse(
+            tenant.getName(), tenant.getLogoUrl(), tenant.getPrimaryColor());
+    }
+
+    @Transactional(readOnly = true)
     public TenantSettingsResponse getSettings() {
         var tenant = loadTenant();
         return toResponse(tenant);

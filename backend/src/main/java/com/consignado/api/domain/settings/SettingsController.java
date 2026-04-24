@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.consignado.api.domain.settings.dto.BrandingResponse;
 import com.consignado.api.domain.settings.dto.CreateManagerRequest;
 import com.consignado.api.domain.settings.dto.ManagerResponse;
 import com.consignado.api.domain.settings.dto.ProfileResponse;
@@ -36,6 +37,12 @@ import lombok.RequiredArgsConstructor;
 public class SettingsController {
 
     private final SettingsService settingsService;
+
+    @GetMapping("/branding")
+    public ResponseEntity<ApiResponse<BrandingResponse>> getBranding() {
+        // Acessível a todos os roles autenticados (owner e manager)
+        return ResponseEntity.ok(ApiResponse.ok(settingsService.getBranding()));
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<TenantSettingsResponse>> getSettings() {

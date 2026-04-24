@@ -71,7 +71,7 @@ async function fetchTenantInfo(
   const headers = { Authorization: `Bearer ${token}` };
   try {
     const [settingsRes, meRes] = await Promise.all([
-      fetch(`${API_URL}/api/v1/settings`, { headers }),
+      fetch(`${API_URL}/api/v1/settings/branding`, { headers }),
       fetch(`${API_URL}/api/v1/auth/validate-token`, { method: "POST", headers }),
     ]);
 
@@ -81,7 +81,7 @@ async function fetchTenantInfo(
       const registered = await tryAutoRegister(token, email, name);
       if (registered) {
         const [s2, m2] = await Promise.all([
-          fetch(`${API_URL}/api/v1/settings`, { headers }),
+          fetch(`${API_URL}/api/v1/settings/branding`, { headers }),
           fetch(`${API_URL}/api/v1/auth/validate-token`, { method: "POST", headers }),
         ]);
         return extractInfo(

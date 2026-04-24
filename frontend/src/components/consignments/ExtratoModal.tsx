@@ -33,10 +33,9 @@ export function ExtratoModal({ consignmentId, onClose }: Props) {
     queryKey: ["consignment", consignmentId],
     queryFn: () => consignmentsApi.get(consignmentId),
   });
-  const { data: s } = useQuery<TenantSettings>({
-    queryKey: ["settings"],
-    queryFn: settingsApi.get,
-    retry: false,   // não tenta retry se manager não tem acesso (403)
+  const { data: s } = useQuery({
+    queryKey: ["settings-branding"],
+    queryFn: settingsApi.branding,
   });
   const { data: settlementsPage } = useQuery({
     queryKey: ["settlements-for-extrato", consignmentId, c?.resellerId],
