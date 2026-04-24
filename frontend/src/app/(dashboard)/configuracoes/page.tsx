@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Save, Building2, User, Tag, X, Plus, Image, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import { useAuthStore } from "@/stores/authStore";
 import type { TenantSettings, UserProfile } from "@/types";
 
 const profileSchema = z.object({
@@ -53,10 +54,25 @@ export default function ConfiguracoesPage() {
     }
   }, [settings]);
 
+  const setBranding = useAuthStore((s) => s.setBranding);
+
   const updateBranding = useMutation({
     mutationFn: () => settingsApi.update({ logoUrl: logoUrl || null, primaryColor }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["settings"] });
+      setBranding(logoUrl || null, primaryColor);
+      // Aplica a cor imediatamente
+      if (primaryColor) {
+        const hex = primaryColor;
+        const r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
+        const max = Math.max(r,g,b), min = Math.min(r,g,b);
+        let h=0,s=0; const l=(max+min)/2;
+        if (max!==min){const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}
+        const hsl = `${Math.round(h*360)} ${Math.round(s*100)}% ${Math.round(l*100)}%`;
+        document.documentElement.style.setProperty('--primary', hsl);
+        document.documentElement.style.setProperty('--ring', hsl);
+        document.documentElement.style.setProperty('--sidebar-primary', hsl);
+      }
       toast.success("Identidade visual atualizada!");
     },
     onError: () => toast.error("Erro ao atualizar"),

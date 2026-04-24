@@ -95,7 +95,14 @@ export default function ConsignadosPage() {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => router.push(`/consignados/${c.id}`)}
                       >
-                        <TableCell className="font-medium">{c.resellerName}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {c.consignmentType === "manager_stock" && (
+                              <Badge variant="outline" className="text-xs shrink-0 border-amber-400 text-amber-600">ESTOQUE</Badge>
+                            )}
+                            {c.resellerName}
+                          </div>
+                        </TableCell>
                         <TableCell>{c.managerName}</TableCell>
                         <TableCell>{formatDate(c.deliveredAt)}</TableCell>
                         <TableCell>{c.expectedReturnAt ? formatDate(c.expectedReturnAt) : "—"}</TableCell>

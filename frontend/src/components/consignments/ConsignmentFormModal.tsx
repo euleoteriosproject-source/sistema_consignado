@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Package, Users } from "lucide-react";
 import { consignmentsApi } from "@/lib/api/consignments";
 import { resellersApi } from "@/lib/api/resellers";
 import { productsApi } from "@/lib/api/products";
@@ -23,6 +23,7 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
   const queryClient = useQueryClient();
   const role = useAuthStore((s) => s.role);
   const isOwner = role === "owner";
+  const [mode, setMode] = useState<"reseller" | "manager_stock">("reseller");
   const [selectedManagerId, setSelectedManagerId] = useState("");
   const [resellerId, setResellerId] = useState("");
   const [deliveredAt, setDeliveredAt] = useState(new Date().toISOString().split("T")[0]);
@@ -69,8 +70,9 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
   const mutation = useMutation({
     mutationFn: () =>
       consignmentsApi.create({
-        resellerId,
+        ...(mode === "reseller" ? { resellerId } : {}),
         ...(isOwner && effectiveManagerId ? { managerId: effectiveManagerId } : {}),
+        consignmentType: mode,
         deliveredAt,
         expectedReturnAt: expectedReturnAt || undefined,
         notes: notes || undefined,
@@ -86,7 +88,7 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
   });
 
   const handleClose = () => {
-    setSelectedManagerId(""); setResellerId("");
+    setMode("reseller"); setSelectedManagerId(""); setResellerId("");
     setDeliveredAt(new Date().toISOString().split("T")[0]);
     setExpectedReturnAt(""); setNotes(""); setItems([{ productId: "", quantitySent: 1 }]);
     onClose();
@@ -97,7 +99,8 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
   const setItem = (i: number, key: keyof ItemRow, val: string | number) =>
     setItems((p) => p.map((row, idx) => idx === i ? { ...row, [key]: val } : row));
 
-  const canSubmit = resellerId && items.some((i) => i.productId && i.quantitySent > 0);
+  const canSubmit = (mode === "manager_stock" ? effectiveManagerId : resellerId)
+    && items.some((i) => i.productId && i.quantitySent > 0);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
@@ -106,6 +109,27 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
           <DialogTitle>Novo lote de consignado</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
+          {isOwner && (
+            <div className="flex gap-2">
+              <Button
+                type="button" size="sm"
+                variant={mode === "reseller" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => { setMode("reseller"); setResellerId(""); }}
+              >
+                <Users className="h-4 w-4 mr-1" /> Para revendedora
+              </Button>
+              <Button
+                type="button" size="sm"
+                variant={mode === "manager_stock" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => { setMode("manager_stock"); setResellerId(""); }}
+              >
+                <Package className="h-4 w-4 mr-1" /> Estoque da gestora
+              </Button>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             {isOwner && (
               <div className="col-span-2 space-y-1">
@@ -120,17 +144,19 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
                 </Select>
               </div>
             )}
-            <div className="col-span-2 space-y-1">
-              <Label>Revendedor(a) *</Label>
-              <Select value={resellerId} onValueChange={handleResellerChange}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {resellers.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {mode === "reseller" && (
+              <div className="col-span-2 space-y-1">
+                <Label>Revendedor(a) *</Label>
+                <Select value={resellerId} onValueChange={handleResellerChange}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {resellers.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1">
               <Label>Data de entrega</Label>
               <DatePicker value={deliveredAt} onChange={setDeliveredAt} />

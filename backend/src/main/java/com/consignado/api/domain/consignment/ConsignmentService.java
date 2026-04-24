@@ -56,14 +56,19 @@ public class ConsignmentService {
     public ConsignmentResponse create(ConsignmentRequest request) {
         var tenantId = TenantContext.TENANT_ID.get();
         var userId = TenantContext.USER_ID.get();
-        log.info("Creating consignment for tenant={} reseller={}", tenantId, request.resellerId());
+        boolean isManagerStock = "manager_stock".equals(request.consignmentType());
+        log.info("Creating consignment type={} tenant={} reseller={}", request.consignmentType(), tenantId, request.resellerId());
 
-        var reseller = resellerRepository.findByIdAndDeletedAtIsNull(request.resellerId())
-            .filter(r -> r.getTenantId().equals(tenantId))
-            .orElseThrow(() -> new ResourceNotFoundException("Revendedora", request.resellerId()));
-
-        if (!"active".equalsIgnoreCase(reseller.getStatus())) {
-            throw new BusinessException("Não é possível criar lote para revendedor(a) inativo(a). Ative o cadastro primeiro.");
+        if (!isManagerStock) {
+            if (request.resellerId() == null) throw new BusinessException("Revendedora é obrigatória");
+            var reseller = resellerRepository.findByIdAndDeletedAtIsNull(request.resellerId())
+                .filter(r -> r.getTenantId().equals(tenantId))
+                .orElseThrow(() -> new ResourceNotFoundException("Revendedora", request.resellerId()));
+            if (!"active".equalsIgnoreCase(reseller.getStatus())) {
+                throw new BusinessException("Não é possível criar lote para revendedor(a) inativo(a). Ative o cadastro primeiro.");
+            }
+        } else {
+            if (request.managerId() == null) throw new BusinessException("Gestora é obrigatória para lote de estoque");
         }
 
         // Validate all products and stock before persisting anything
@@ -78,14 +83,15 @@ public class ConsignmentService {
             productMap.put(product.getId(), product);
         }
 
-        // Owner pode delegar o lote a uma gestora específica via managerId no request
         var role = TenantContext.ROLE.get();
-        var effectiveManagerId = ("owner".equalsIgnoreCase(role) && request.managerId() != null)
-            ? request.managerId() : userId;
+        var effectiveManagerId = isManagerStock
+            ? request.managerId()
+            : (("owner".equalsIgnoreCase(role) && request.managerId() != null) ? request.managerId() : userId);
 
         var consignment = new Consignment();
         consignment.setTenantId(tenantId);
-        consignment.setResellerId(request.resellerId());
+        consignment.setResellerId(isManagerStock ? null : request.resellerId());
+        consignment.setConsignmentType(isManagerStock ? "manager_stock" : "reseller");
         consignment.setManagerId(effectiveManagerId);
         consignment.setDeliveredAt(request.deliveredAt() != null ? request.deliveredAt() : LocalDate.now());
         consignment.setExpectedReturnAt(request.expectedReturnAt());
@@ -108,16 +114,20 @@ public class ConsignmentService {
         }
 
         var items = itemRepository.findByConsignmentId(saved.getId());
-        log.info("Consignment created id={} items={}", saved.getId(), items.size());
-        return toResponse(saved, reseller, items, productMap);
+        log.info("Consignment created id={} type={} items={}", saved.getId(), saved.getConsignmentType(), items.size());
+        Reseller resolvedReseller = (!isManagerStock && request.resellerId() != null)
+            ? resellerRepository.findByIdAndDeletedAtIsNull(request.resellerId()).orElse(null)
+            : null;
+        return toResponse(saved, resolvedReseller, items, productMap);
     }
 
     @Transactional(readOnly = true)
     public ConsignmentResponse findById(UUID id) {
         var tenantId = TenantContext.TENANT_ID.get();
         var consignment = resolveConsignment(id, tenantId);
-        var reseller = resellerRepository.findById(consignment.getResellerId())
-            .orElseThrow(() -> new ResourceNotFoundException("Revendedora", consignment.getResellerId()));
+        Reseller reseller = consignment.getResellerId() != null
+            ? resellerRepository.findById(consignment.getResellerId()).orElse(null)
+            : null;
         var items = itemRepository.findByConsignmentId(id);
         var productMap = loadProductMap(items);
         return toResponse(consignment, reseller, items, productMap);
@@ -132,7 +142,8 @@ public class ConsignmentService {
         var spec = buildSpec(filter, tenantId, role, userId);
         var page = consignmentRepository.findAll(spec, pageable);
 
-        var resellerIds = page.stream().map(Consignment::getResellerId).collect(Collectors.toSet());
+        var resellerIds = page.stream().map(Consignment::getResellerId)
+            .filter(java.util.Objects::nonNull).collect(Collectors.toSet());
         var managerIds  = page.stream().map(Consignment::getManagerId).collect(Collectors.toSet());
         var consignmentIds = page.stream().map(Consignment::getId).toList();
 
@@ -158,7 +169,9 @@ public class ConsignmentService {
         }
 
         return page.map(c -> toSummary(c,
-            resellers.getOrDefault(c.getResellerId(), ""),
+            c.getResellerId() != null
+                ? resellers.getOrDefault(c.getResellerId(), "")
+                : "Estoque — " + managers.getOrDefault(c.getManagerId(), ""),
             managers.getOrDefault(c.getManagerId(), ""),
             totalItemsMap.getOrDefault(c.getId(), 0),
             totalSoldMap.getOrDefault(c.getId(), 0),
@@ -259,7 +272,7 @@ public class ConsignmentService {
         }
 
         var items = itemRepository.findByConsignmentId(consignmentId);
-        var reseller = resellerRepository.findById(consignment.getResellerId()).orElseThrow();
+        Reseller reseller = consignment.getResellerId() != null ? resellerRepository.findById(consignment.getResellerId()).orElse(null) : null;
         log.info("Batch movement registered consignmentId={}", consignmentId);
         return toResponse(consignment, reseller, items, loadProductMap(items));
     }
@@ -283,7 +296,7 @@ public class ConsignmentService {
         // Idempotent: if already settled (e.g. batch movement settled it first), return silently
         if ("settled".equals(consignment.getStatus())) {
             var existingItems = itemRepository.findByConsignmentId(consignmentId);
-            var reseller = resellerRepository.findById(consignment.getResellerId()).orElseThrow();
+            Reseller reseller = consignment.getResellerId() != null ? resellerRepository.findById(consignment.getResellerId()).orElse(null) : null;
             log.info("Consignment already settled id={}, returning current state", consignmentId);
             return toResponse(consignment, reseller, existingItems, loadProductMap(existingItems));
         }
@@ -317,7 +330,7 @@ public class ConsignmentService {
         }
         consignmentRepository.save(consignment);
 
-        var reseller = resellerRepository.findById(consignment.getResellerId()).orElseThrow();
+        Reseller reseller = consignment.getResellerId() != null ? resellerRepository.findById(consignment.getResellerId()).orElse(null) : null;
         log.info("Consignment settled id={}", consignmentId);
         return toResponse(consignment, reseller, items, productMap);
     }
@@ -371,7 +384,7 @@ public class ConsignmentService {
         consignmentRepository.save(consignment);
 
         var items = itemRepository.findByConsignmentId(consignmentId);
-        var reseller = resellerRepository.findById(consignment.getResellerId()).orElseThrow();
+        Reseller reseller = consignment.getResellerId() != null ? resellerRepository.findById(consignment.getResellerId()).orElse(null) : null;
         return toResponse(consignment, reseller, items, loadProductMap(items));
     }
 
@@ -452,6 +465,7 @@ public class ConsignmentService {
     private ConsignmentResponse toResponse(Consignment c, Reseller reseller,
                                             List<ConsignmentItem> items, Map<UUID, Product> productMap) {
         var managerName = userRepository.findById(c.getManagerId()).map(User::getName).orElse("");
+        var resellerName = reseller != null ? reseller.getName() : "Estoque — " + managerName;
 
         var itemResponses = items.stream()
             .map(item -> toItemResponse(item, productMap.get(item.getProductId())))
@@ -466,10 +480,11 @@ public class ConsignmentService {
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new ConsignmentResponse(
-            c.getId(), c.getResellerId(), reseller.getName(),
+            c.getId(), c.getResellerId(), resellerName,
             c.getManagerId(), managerName,
-            c.getDeliveredAt(), c.getExpectedReturnAt(), c.getStatus(), c.getNotes(),
-            itemResponses, totalSentValue, totalSoldValue,
+            c.getDeliveredAt(), c.getExpectedReturnAt(),
+            c.getStatus(), c.getConsignmentType() != null ? c.getConsignmentType() : "reseller",
+            c.getNotes(), itemResponses, totalSentValue, totalSoldValue,
             c.getCreatedAt(), c.getUpdatedAt()
         );
     }
@@ -481,6 +496,7 @@ public class ConsignmentService {
             c.getId(), c.getResellerId(), resellerName,
             c.getManagerId(), managerName,
             c.getDeliveredAt(), c.getExpectedReturnAt(), c.getStatus(),
+            c.getConsignmentType() != null ? c.getConsignmentType() : "reseller",
             totalItems, totalSold, totalReturned, totalLost, totalValue,
             c.getCreatedAt(), c.getUpdatedAt()
         );

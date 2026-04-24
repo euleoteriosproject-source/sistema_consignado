@@ -15,6 +15,7 @@ public record ConsignmentResponse(
     LocalDate deliveredAt,
     LocalDate expectedReturnAt,
     String status,
+    String consignmentType,
     String notes,
     List<ConsignmentItemResponse> items,
     BigDecimal totalSentValue,

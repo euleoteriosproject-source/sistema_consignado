@@ -156,13 +156,14 @@ export interface ConsignmentItem {
 
 export interface ConsignmentSummary {
   id: string;
-  resellerId: string;
+  resellerId: string | null;
   resellerName: string;
   managerId: string;
   managerName: string;
   deliveredAt: string;
   expectedReturnAt: string | null;
   status: "open" | "partially_settled" | "settled" | "overdue";
+  consignmentType: "reseller" | "manager_stock";
   totalItems: number;
   totalSold: number;
   totalReturned: number;
@@ -173,6 +174,7 @@ export interface ConsignmentSummary {
 }
 
 export interface Consignment extends ConsignmentSummary {
+  consignmentType: "reseller" | "manager_stock";
   notes: string | null;
   items: ConsignmentItem[];
   totalSentValue: number;

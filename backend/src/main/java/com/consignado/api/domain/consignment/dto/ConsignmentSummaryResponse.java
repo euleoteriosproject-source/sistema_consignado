@@ -14,6 +14,7 @@ public record ConsignmentSummaryResponse(
     LocalDate deliveredAt,
     LocalDate expectedReturnAt,
     String status,
+    String consignmentType,
     int totalItems,
     int totalSold,
     int totalReturned,

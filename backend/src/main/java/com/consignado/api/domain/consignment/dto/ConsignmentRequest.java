@@ -9,8 +9,9 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 public record ConsignmentRequest(
-    @NotNull(message = "Revendedora é obrigatória") UUID resellerId,
+    UUID resellerId,
     UUID managerId,
+    String consignmentType,
     LocalDate deliveredAt,
     LocalDate expectedReturnAt,
     @NotEmpty(message = "Ao menos um item é obrigatório") @Valid List<ConsignmentItemRequest> items,

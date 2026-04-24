@@ -26,8 +26,11 @@ public class Consignment extends TimestampedEntity {
     @Column(name = "tenant_id", nullable = false, updatable = false)
     private UUID tenantId;
 
-    @Column(name = "reseller_id", nullable = false)
+    @Column(name = "reseller_id")
     private UUID resellerId;
+
+    @Column(name = "consignment_type", nullable = false, length = 20)
+    private String consignmentType = "reseller";
 
     @Column(name = "manager_id", nullable = false)
     private UUID managerId;
@@ -67,4 +70,7 @@ public class Consignment extends TimestampedEntity {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getConsignmentType() { return consignmentType; }
+    public void setConsignmentType(String consignmentType) { this.consignmentType = consignmentType; }
 }
