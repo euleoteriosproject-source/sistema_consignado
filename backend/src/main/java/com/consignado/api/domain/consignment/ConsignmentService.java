@@ -171,7 +171,7 @@ public class ConsignmentService {
         return page.map(c -> toSummary(c,
             c.getResellerId() != null
                 ? resellers.getOrDefault(c.getResellerId(), "")
-                : "Estoque — " + managers.getOrDefault(c.getManagerId(), ""),
+                : managers.getOrDefault(c.getManagerId(), ""),
             managers.getOrDefault(c.getManagerId(), ""),
             totalItemsMap.getOrDefault(c.getId(), 0),
             totalSoldMap.getOrDefault(c.getId(), 0),
@@ -442,6 +442,9 @@ public class ConsignmentService {
 
             if ("manager".equalsIgnoreCase(role)) {
                 predicates.add(cb.equal(root.get("managerId"), userId));
+            } else if (f.ownOnly()) {
+                // Dono quer ver apenas seus próprios lotes (sem filtro de gestora)
+                predicates.add(cb.equal(root.get("managerId"), userId));
             }
             if (f.status() != null && !f.status().isBlank()) {
                 predicates.add(cb.equal(root.get("status"), f.status().toLowerCase()));
@@ -468,7 +471,7 @@ public class ConsignmentService {
     private ConsignmentResponse toResponse(Consignment c, Reseller reseller,
                                             List<ConsignmentItem> items, Map<UUID, Product> productMap) {
         var managerName = userRepository.findById(c.getManagerId()).map(User::getName).orElse("");
-        var resellerName = reseller != null ? reseller.getName() : "Estoque — " + managerName;
+        var resellerName = reseller != null ? reseller.getName() : managerName;
 
         var itemResponses = items.stream()
             .map(item -> toItemResponse(item, productMap.get(item.getProductId())))

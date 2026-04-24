@@ -9,5 +9,6 @@ public record ConsignmentFilterRequest(
     UUID managerId,
     String consignmentType,
     LocalDate from,
-    LocalDate to
+    LocalDate to,
+    boolean ownOnly
 ) {}

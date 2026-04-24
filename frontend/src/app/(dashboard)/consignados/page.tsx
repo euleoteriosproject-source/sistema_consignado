@@ -40,10 +40,13 @@ export default function ConsignadosPage() {
     enabled: isOwner,
   });
 
-  // Owner: vê tudo; Manager: filtra por tipo conforme tab
+  // Owner sem gestora selecionada: só os próprios lotes (ownOnly)
+  // Owner com gestora selecionada: filtra pela gestora
+  // Manager: filtra por tipo conforme tab
   const params: Record<string, string | undefined> = { page: String(page), size: "20" };
   if (status !== "all") params.status = status;
-  if (selectedManagerId) params.managerId = selectedManagerId;
+  if (isOwner && selectedManagerId) params.managerId = selectedManagerId;
+  if (isOwner && !selectedManagerId) params.ownOnly = "true";
   if (!isOwner) params.consignmentType = managerTab;
 
   const { data, isLoading } = useQuery<PageResponse<ConsignmentSummary>>({
@@ -154,14 +157,7 @@ export default function ConsignadosPage() {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => router.push(`/consignados/${c.id}`)}
                       >
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {c.consignmentType === "manager_stock" && (
-                              <Badge variant="outline" className="text-xs shrink-0 border-amber-400 text-amber-600">ESTOQUE</Badge>
-                            )}
-                            {c.resellerName}
-                          </div>
-                        </TableCell>
+                        <TableCell className="font-medium">{c.resellerName}</TableCell>
                         <TableCell>{c.managerName}</TableCell>
                         <TableCell>{formatDate(c.deliveredAt)}</TableCell>
                         <TableCell>{c.expectedReturnAt ? formatDate(c.expectedReturnAt) : "—"}</TableCell>
