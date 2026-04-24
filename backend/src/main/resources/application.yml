@@ -41,6 +41,11 @@ spring:
     redis:
       time-to-live: 300000
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 15MB
+
   threads:
     virtual:
       enabled: true
