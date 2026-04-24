@@ -237,10 +237,10 @@ ${settlementsHtml}
               <>
                 <Separator />
                 <div>
-                  <p className="font-semibold text-sm mb-3">
+                  <div className="font-semibold text-sm mb-3 flex items-center gap-2">
                     Acertos registrados
-                    <Badge variant="secondary" className="ml-2">{settlements.length}</Badge>
-                  </p>
+                    <Badge variant="secondary">{settlements.length}</Badge>
+                  </div>
                   <div className="space-y-2">
                     {settlements.map((st) => (
                       <div key={st.id} className="border rounded-lg p-3 bg-muted/20">

@@ -69,10 +69,13 @@ public class SettingsService {
     @Transactional
     public String uploadLogo(MultipartFile file) {
         var tenant = loadTenant();
+        log.info("Logo upload started tenant={} fileName={} size={} contentType={}",
+            tenant.getId(), file.getOriginalFilename(), file.getSize(), file.getContentType());
         String path = storageService.upload("logos/" + tenant.getId(), file);
-        // Signed URL válida por 10 anos (bucket privado)
+        log.info("Logo uploaded to storage path={}", path);
         long tenYears = 10L * 365 * 24 * 3600;
         String url = storageService.getSignedUrl(path, tenYears);
+        log.info("Logo signed URL generated: {}", url);
         tenant.setLogoUrl(url);
         tenantRepository.save(tenant);
         log.info("Logo updated tenant={}", tenant.getId());
