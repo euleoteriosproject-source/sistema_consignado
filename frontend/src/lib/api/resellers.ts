@@ -21,6 +21,8 @@ export const resellersApi = {
   uploadDocument: (id: string, formData: FormData) =>
     apiUpload(`/api/v1/resellers/${id}/documents`, formData),
   listDocuments: (id: string) => apiFetch<ResellerDocument[]>(`/api/v1/resellers/${id}/documents`),
+  getDocumentUrl: (id: string, docId: string) =>
+    apiFetch<string>(`/api/v1/resellers/${id}/documents/${docId}/url`),
   deleteDocument: (id: string, docId: string) =>
     apiFetch<void>(`/api/v1/resellers/${id}/documents/${docId}`, { method: "DELETE" }),
   completeness: (id: string) => apiFetch<ResellerCompleteness>(`/api/v1/resellers/${id}/completeness`),

@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.consignado.api.config.AppProperties;
 import com.consignado.api.shared.exception.BusinessException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ public class SupabaseStorageService {
 
     private final OkHttpClient httpClient;
     private final AppProperties appProperties;
+    private final ObjectMapper objectMapper;
 
     public String upload(String folder, MultipartFile file) {
         String originalName = file.getOriginalFilename();
@@ -68,17 +70,40 @@ public class SupabaseStorageService {
         }
     }
 
-    private String resolveContentType(MultipartFile file, String fileName) {
-        if (file.getContentType() != null && !file.getContentType().equals("application/octet-stream")) {
-            return file.getContentType();
+    /**
+     * Generates a signed URL for a private bucket file.
+     * @param storagePath path returned by upload()
+     * @param expiresInSeconds how long the URL remains valid
+     */
+    public String getSignedUrl(String storagePath, long expiresInSeconds) {
+        String bucket = appProperties.supabase().storageBucket();
+        String url = appProperties.supabase().url()
+            + "/storage/v1/object/sign/" + bucket + "/" + storagePath;
+
+        String jsonBody = "{\"expiresIn\":" + expiresInSeconds + "}";
+        RequestBody body = RequestBody.create(jsonBody.getBytes(), MediaType.parse("application/json"));
+
+        Request request = new Request.Builder()
+            .url(url)
+            .post(body)
+            .addHeader("Authorization", "Bearer " + appProperties.supabase().serviceRoleKey())
+            .build();
+
+        try (var response = httpClient.newCall(request).execute()) {
+            String responseBody = response.body() != null ? response.body().string() : "{}";
+            if (!response.isSuccessful()) {
+                log.error("Failed to generate signed URL: status={} body={}", response.code(), responseBody);
+                throw new BusinessException("Erro ao gerar URL de acesso: " + response.code());
+            }
+            var node = objectMapper.readTree(responseBody);
+            String signedPath = node.path("signedURL").asText();
+            if (signedPath.isBlank()) {
+                throw new BusinessException("Resposta inválida do storage ao gerar URL");
+            }
+            return appProperties.supabase().url() + signedPath;
+        } catch (IOException e) {
+            throw new BusinessException("Falha ao gerar URL assinada: " + e.getMessage());
         }
-        String lower = fileName.toLowerCase();
-        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-        if (lower.endsWith(".png"))  return "image/png";
-        if (lower.endsWith(".gif"))  return "image/gif";
-        if (lower.endsWith(".webp")) return "image/webp";
-        if (lower.endsWith(".pdf"))  return "application/pdf";
-        return file.getContentType() != null ? file.getContentType() : "application/octet-stream";
     }
 
     public void delete(String storagePath) {
@@ -101,9 +126,16 @@ public class SupabaseStorageService {
         }
     }
 
-    public String getPublicUrl(String storagePath) {
-        String bucket = appProperties.supabase().storageBucket();
-        return appProperties.supabase().url()
-            + "/storage/v1/object/public/" + bucket + "/" + storagePath;
+    private String resolveContentType(MultipartFile file, String fileName) {
+        if (file.getContentType() != null && !file.getContentType().equals("application/octet-stream")) {
+            return file.getContentType();
+        }
+        String lower = fileName.toLowerCase();
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".png"))  return "image/png";
+        if (lower.endsWith(".gif"))  return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".pdf"))  return "application/pdf";
+        return file.getContentType() != null ? file.getContentType() : "application/octet-stream";
     }
 }

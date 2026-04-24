@@ -70,7 +70,9 @@ public class SettingsService {
     public String uploadLogo(MultipartFile file) {
         var tenant = loadTenant();
         String path = storageService.upload("logos/" + tenant.getId(), file);
-        String url  = storageService.getPublicUrl(path);
+        // Signed URL válida por 10 anos (bucket privado)
+        long tenYears = 10L * 365 * 24 * 3600;
+        String url = storageService.getSignedUrl(path, tenYears);
         tenant.setLogoUrl(url);
         tenantRepository.save(tenant);
         log.info("Logo updated tenant={}", tenant.getId());

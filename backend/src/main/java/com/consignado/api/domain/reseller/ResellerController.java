@@ -119,6 +119,14 @@ public class ResellerController {
         return ResponseEntity.ok(ApiResponse.ok(resellerService.listDocuments(id)));
     }
 
+    @GetMapping("/{id}/documents/{docId}/url")
+    public ResponseEntity<ApiResponse<String>> getDocumentUrl(
+        @PathVariable UUID id,
+        @PathVariable UUID docId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(resellerService.getDocumentSignedUrl(id, docId)));
+    }
+
     @DeleteMapping("/{id}/documents/{docId}")
     public ResponseEntity<Void> removeDocument(
         @PathVariable UUID id,

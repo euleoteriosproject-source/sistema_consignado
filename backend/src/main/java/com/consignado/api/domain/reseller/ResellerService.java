@@ -294,6 +294,19 @@ public class ResellerService {
             .toList();
     }
 
+    @Transactional(readOnly = true)
+    public String getDocumentSignedUrl(UUID resellerId, UUID docId) {
+        var tenantId = TenantContext.TENANT_ID.get();
+        resellerRepository.findByIdAndDeletedAtIsNull(resellerId)
+            .filter(r -> r.getTenantId().equals(tenantId))
+            .orElseThrow(() -> new ResourceNotFoundException("Revendedora", resellerId));
+
+        var doc = documentRepository.findByIdAndTenantId(docId, tenantId)
+            .orElseThrow(() -> new ResourceNotFoundException("Documento", docId));
+
+        return storageService.getSignedUrl(doc.getStoragePath(), 3600); // 1 hour
+    }
+
     @Transactional
     public void removeDocument(UUID resellerId, UUID docId) {
         var tenantId = TenantContext.TENANT_ID.get();
@@ -393,7 +406,8 @@ public class ResellerService {
     private ResellerDocumentResponse toDocumentResponse(ResellerDocument doc) {
         return new ResellerDocumentResponse(
             doc.getId(), doc.getType(), doc.getStoragePath(), doc.getFileName(),
-            storageService.getPublicUrl(doc.getStoragePath()), doc.getUploadedAt()
+            null, // URL gerada on-demand via GET /documents/{docId}/url (bucket privado)
+            doc.getUploadedAt()
         );
     }
 }

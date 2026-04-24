@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Pencil, FileText, CheckCircle, AlertCircle, ToggleLeft, Trash2, ExternalLink } from "lucide-react";
+import { ArrowLeft, Pencil, FileText, CheckCircle, AlertCircle, ToggleLeft, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ResellerFormModal } from "@/components/resellers/ResellerFormModal";
 import { DocumentUploadModal } from "@/components/resellers/DocumentUploadModal";
@@ -105,6 +105,20 @@ export default function ResellerDetailPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const [loadingDocUrl, setLoadingDocUrl] = useState<string | null>(null);
+
+  async function openDocument(docId: string) {
+    setLoadingDocUrl(docId);
+    try {
+      const url = await resellersApi.getDocumentUrl(id, docId);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      toast.error("Não foi possível abrir o documento.");
+    } finally {
+      setLoadingDocUrl(null);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -355,18 +369,18 @@ export default function ResellerDetailPage() {
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    {doc.publicUrl ? (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        asChild
-                      >
-                        <a href={doc.publicUrl} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      </Button>
-                    ) : null}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => openDocument(doc.id)}
+                      disabled={loadingDocUrl === doc.id}
+                      title="Visualizar documento"
+                    >
+                      {loadingDocUrl === doc.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <ExternalLink className="h-3.5 w-3.5" />}
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
