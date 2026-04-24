@@ -111,12 +111,14 @@ public class ProductService {
         var page = productRepository.findAll(spec, pageable);
 
         var productIds = page.stream().map(Product::getId).collect(Collectors.toSet());
-        Map<UUID, String> primaryUrls = imageRepository
-            .findByProductIdInAndIsPrimaryTrue(productIds)
-            .stream()
+        var primaryImages = imageRepository.findByProductIdInAndIsPrimaryTrue(productIds);
+        var primaryPaths = primaryImages.stream().map(ProductImage::getStoragePath).toList();
+        var signedUrls = storageService.getSignedUrls(primaryPaths, 365L * 24 * 3600);
+        Map<UUID, String> primaryUrls = primaryImages.stream()
+            .filter(img -> signedUrls.containsKey(img.getStoragePath()))
             .collect(Collectors.toMap(
                 img -> img.getProduct().getId(),
-                img -> storageService.getPublicUrl(img.getStoragePath())
+                img -> signedUrls.get(img.getStoragePath())
             ));
 
         return page.map(p -> toSummary(p, primaryUrls.get(p.getId())));
@@ -369,7 +371,7 @@ public class ProductService {
     private ProductImageResponse toImageResponse(ProductImage img) {
         return new ProductImageResponse(
             img.getId(), img.getStoragePath(),
-            storageService.getPublicUrl(img.getStoragePath()),
+            storageService.getSignedUrl(img.getStoragePath(), 365L * 24 * 3600),
             img.getDisplayOrder(), img.isPrimary(), img.getCreatedAt()
         );
     }

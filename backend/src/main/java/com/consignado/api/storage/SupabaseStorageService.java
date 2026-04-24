@@ -71,6 +71,53 @@ public class SupabaseStorageService {
     }
 
     /**
+     * Generates signed URLs for multiple paths in a single API call.
+     * Returns map of storagePath → signedUrl; missing paths are omitted.
+     */
+    public java.util.Map<String, String> getSignedUrls(java.util.List<String> storagePaths, long expiresInSeconds) {
+        if (storagePaths == null || storagePaths.isEmpty()) return java.util.Map.of();
+
+        String bucket = appProperties.supabase().storageBucket();
+        String url = appProperties.supabase().url()
+            + "/storage/v1/object/sign/" + bucket;
+
+        try {
+            var pathsJson = objectMapper.writeValueAsString(
+                java.util.Map.of("paths", storagePaths, "expiresIn", expiresInSeconds));
+            RequestBody body = RequestBody.create(pathsJson.getBytes(), MediaType.parse("application/json"));
+
+            Request request = new Request.Builder()
+                .url(url)
+                .post(body)
+                .addHeader("Authorization", "Bearer " + appProperties.supabase().serviceRoleKey())
+                .build();
+
+            try (var response = httpClient.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "[]";
+                if (!response.isSuccessful()) {
+                    log.error("Batch signed URL failed: status={} body={}", response.code(), responseBody);
+                    return java.util.Map.of();
+                }
+                var arr = objectMapper.readTree(responseBody);
+                var result = new java.util.HashMap<String, String>();
+                if (arr.isArray()) {
+                    for (var node : arr) {
+                        String path = node.path("path").asText();
+                        String signedPath = node.path("signedURL").asText();
+                        if (!path.isBlank() && !signedPath.isBlank()) {
+                            result.put(path, appProperties.supabase().url() + signedPath);
+                        }
+                    }
+                }
+                return result;
+            }
+        } catch (IOException e) {
+            log.warn("Failed to batch sign URLs: {}", e.getMessage());
+            return java.util.Map.of();
+        }
+    }
+
+    /**
      * Generates a signed URL for a private bucket file.
      * @param storagePath path returned by upload()
      * @param expiresInSeconds how long the URL remains valid
