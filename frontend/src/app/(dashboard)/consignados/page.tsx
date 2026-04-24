@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, UserCog, ChevronLeft, Package } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ConsignmentFormModal } from "@/components/consignments/ConsignmentFormModal";
+import { ExtratoModal } from "@/components/consignments/ExtratoModal";
 import { useAuthStore } from "@/stores/authStore";
 import type { PageResponse, ConsignmentSummary } from "@/types";
 
@@ -31,6 +32,7 @@ export default function ConsignadosPage() {
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [extratoId, setExtratoId] = useState<string | null>(null);
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   const [managerTab, setManagerTab] = useState<"reseller" | "manager_stock">("reseller");
 
@@ -199,7 +201,17 @@ export default function ConsignadosPage() {
         </CardContent>
       </Card>
 
-      <ConsignmentFormModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <ConsignmentFormModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onCreated={(id) => setExtratoId(id)}
+      />
+      {extratoId && (
+        <ExtratoModal
+          consignmentId={extratoId}
+          onClose={() => setExtratoId(null)}
+        />
+      )}
     </div>
   );
 }

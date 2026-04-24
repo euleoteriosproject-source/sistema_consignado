@@ -17,9 +17,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 
 interface ItemRow { productId: string; quantitySent: number }
 
-interface Props { open: boolean; onClose: () => void }
+interface Props { open: boolean; onClose: () => void; onCreated?: (id: string) => void }
 
-export function ConsignmentFormModal({ open, onClose }: Props) {
+export function ConsignmentFormModal({ open, onClose, onCreated }: Props) {
   const queryClient = useQueryClient();
   const role = useAuthStore((s) => s.role);
   const isOwner = role === "owner";
@@ -78,11 +78,12 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
         notes: notes || undefined,
         items: items.filter((i) => i.productId && i.quantitySent > 0),
       }),
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ["consignments"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Lote criado com sucesso!");
       handleClose();
+      onCreated?.(created.id);
     },
     onError: (e) => toast.error(e.message),
   });

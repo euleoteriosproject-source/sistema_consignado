@@ -443,8 +443,11 @@ public class ConsignmentService {
             if ("manager".equalsIgnoreCase(role)) {
                 predicates.add(cb.equal(root.get("managerId"), userId));
             } else if (f.ownOnly()) {
-                // Dono quer ver apenas seus próprios lotes (sem filtro de gestora)
-                predicates.add(cb.equal(root.get("managerId"), userId));
+                // Dono: lotes onde é manager direto + todos manager_stock do tenant (dono sempre cria)
+                predicates.add(cb.or(
+                    cb.equal(root.get("managerId"), userId),
+                    cb.equal(root.get("consignmentType"), "manager_stock")
+                ));
             }
             if (f.status() != null && !f.status().isBlank()) {
                 predicates.add(cb.equal(root.get("status"), f.status().toLowerCase()));
