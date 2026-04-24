@@ -8,10 +8,13 @@ interface AuthState {
   tenantId: string | null;
   tenantName: string | null;
   userName: string | null;
+  logoUrl: string | null;
+  primaryColor: string | null;
   setSession: (session: Session | null) => void;
   setRole: (role: string) => void;
   setTenantName: (name: string) => void;
   setUserName: (name: string) => void;
+  setBranding: (logoUrl: string | null, primaryColor: string | null) => void;
   clearSession: () => void;
 }
 
@@ -22,13 +25,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   tenantId: null,
   tenantName: null,
   userName: null,
-  setSession: (session) =>
-    set({
-      session,
-      user: session?.user ?? null,
-    }),
+  logoUrl: null,
+  primaryColor: null,
+  setSession: (session) => set({ session, user: session?.user ?? null }),
   setRole: (role) => set({ role }),
   setTenantName: (name) => set({ tenantName: name }),
   setUserName: (name) => set({ userName: name }),
-  clearSession: () => set({ session: null, user: null, role: null, tenantId: null, tenantName: null, userName: null }),
+  setBranding: (logoUrl, primaryColor) => set({ logoUrl, primaryColor }),
+  clearSession: () => set({
+    session: null, user: null, role: null, tenantId: null,
+    tenantName: null, userName: null, logoUrl: null, primaryColor: null,
+  }),
 }));

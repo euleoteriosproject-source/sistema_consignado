@@ -40,8 +40,9 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/gestoras") ||
     request.nextUrl.pathname.startsWith("/suporte");
   const isAdmin = request.nextUrl.pathname.startsWith("/admin");
+  const isPrint = request.nextUrl.pathname.startsWith("/romaneio");
 
-  if (!user && (isDashboard || isAdmin)) {
+  if (!user && (isDashboard || isAdmin || isPrint)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

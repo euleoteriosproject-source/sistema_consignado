@@ -31,13 +31,18 @@ const managerNav = [
 export function Sidebar() {
   const pathname = usePathname();
   const tenantName = useAuthStore((s) => s.tenantName);
+  const logoUrl = useAuthStore((s) => s.logoUrl);
   const role = useAuthStore((s) => s.role);
   const navItems = role === "manager" ? managerNav : ownerNav;
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border min-h-screen">
       <div className="flex items-center gap-2 px-6 py-5 border-b border-sidebar-border">
-        <Gem className="h-6 w-6 text-primary shrink-0" />
+        {logoUrl ? (
+          <img src={logoUrl} alt={tenantName ?? "Logo"} className="h-8 w-8 rounded object-contain shrink-0" />
+        ) : (
+          <Gem className="h-6 w-6 text-primary shrink-0" />
+        )}
         <span className="text-base font-bold text-sidebar-foreground truncate leading-tight">
           {tenantName ?? "Consignado"}
         </span>

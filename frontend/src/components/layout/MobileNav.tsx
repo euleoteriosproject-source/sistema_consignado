@@ -31,6 +31,7 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const tenantName = useAuthStore((s) => s.tenantName);
+  const logoUrl = useAuthStore((s) => s.logoUrl);
   const role = useAuthStore((s) => s.role);
   const navItems = role === "manager" ? managerNav : ownerNav;
 
@@ -46,7 +47,11 @@ export function MobileNav() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 px-6 py-5 border-b border-sidebar-border">
-              <Gem className="h-6 w-6 text-primary" />
+              {logoUrl ? (
+                <img src={logoUrl} alt={tenantName ?? "Logo"} className="h-8 w-8 rounded object-contain shrink-0" />
+              ) : (
+                <Gem className="h-6 w-6 text-primary" />
+              )}
               <span className="text-lg font-bold">{tenantName ?? "Consignado"}</span>
             </div>
             <nav className="flex-1 px-3 py-4 space-y-1">

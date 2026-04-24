@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, TrendingUp, CheckCircle, Receipt, History, TrendingDown, RotateCcw, AlertTriangle, Clock, CircleDollarSign, AlertCircle, Package } from "lucide-react";
+import { ArrowLeft, TrendingUp, CheckCircle, Receipt, History, TrendingDown, RotateCcw, AlertTriangle, Clock, CircleDollarSign, AlertCircle, Package, Printer } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MovementModal } from "@/components/consignments/MovementModal";
 import { PostMovementSettlementDialog } from "@/components/consignments/PostMovementSettlementDialog";
@@ -321,16 +321,22 @@ export default function ConsignmentDetailPage() {
             {consignment.expectedReturnAt && ` · Retorno: ${formatDate(consignment.expectedReturnAt)}`}
           </p>
         </div>
-        {isOpen && (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setMovementOpen(true)}>
-              <TrendingUp className="h-4 w-4 mr-1" /> Movimentar
-            </Button>
-            <Button size="sm" onClick={() => setCloseOpen(true)}>
-              <CheckCircle className="h-4 w-4 mr-1" /> Encerrar lote
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm"
+            onClick={() => window.open(`/romaneio/consignados/${id}`, "_blank")}>
+            <Printer className="h-4 w-4 mr-1" /> Romaneio
+          </Button>
+          {isOpen && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setMovementOpen(true)}>
+                <TrendingUp className="h-4 w-4 mr-1" /> Movimentar
+              </Button>
+              <Button size="sm" onClick={() => setCloseOpen(true)}>
+                <CheckCircle className="h-4 w-4 mr-1" /> Encerrar lote
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-4">

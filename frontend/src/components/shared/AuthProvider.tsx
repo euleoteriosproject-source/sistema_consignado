@@ -18,14 +18,48 @@ type TenantInfo = {
   tenantName: string | null;
   userName: string | null;
   role: string | null;
+  logoUrl: string | null;
+  primaryColor: string | null;
 };
+
+function hexToHsl(hex: string): string | null {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!r) return null;
+  let ri = parseInt(r[1], 16) / 255, gi = parseInt(r[2], 16) / 255, bi = parseInt(r[3], 16) / 255;
+  const max = Math.max(ri, gi, bi), min = Math.min(ri, gi, bi);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case ri: h = ((gi - bi) / d + (gi < bi ? 6 : 0)) / 6; break;
+      case gi: h = ((bi - ri) / d + 2) / 6; break;
+      case bi: h = ((ri - gi) / d + 4) / 6; break;
+    }
+  }
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}
+
+function applyPrimaryColor(hex: string) {
+  const hsl = hexToHsl(hex);
+  if (!hsl) return;
+  const root = document.documentElement;
+  root.style.setProperty('--primary', hsl);
+  root.style.setProperty('--ring', hsl);
+  root.style.setProperty('--sidebar-primary', hsl);
+  root.style.setProperty('--sidebar-ring', hsl);
+}
 
 function extractInfo(settingsJson: Record<string, unknown> | null, meJson: Record<string, unknown> | null): TenantInfo {
   const data = meJson?.data as Record<string, unknown> | undefined;
+  const settings = settingsJson?.data as Record<string, unknown> | undefined;
   return {
-    tenantName: ((settingsJson?.data as Record<string, unknown>)?.name ?? settingsJson?.name) as string | null,
+    tenantName: (settings?.name ?? settingsJson?.name) as string | null,
     userName: (data?.name ?? meJson?.name) as string | null,
     role: (data?.role ?? meJson?.role) as string | null,
+    logoUrl: (settings?.logoUrl ?? null) as string | null,
+    primaryColor: (settings?.primaryColor ?? null) as string | null,
   };
 }
 
@@ -73,12 +107,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setTenantName = useAuthStore((s) => s.setTenantName);
   const setUserName = useAuthStore((s) => s.setUserName);
   const setRole = useAuthStore((s) => s.setRole);
+  const setBranding = useAuthStore((s) => s.setBranding);
 
   async function applyInfo(token: string, email?: string | null, fullName?: string | null) {
-    const { tenantName, userName, role } = await fetchTenantInfo(token, email, fullName);
+    const { tenantName, userName, role, logoUrl, primaryColor } = await fetchTenantInfo(token, email, fullName);
     if (tenantName) setTenantName(tenantName);
     if (userName) setUserName(userName);
     if (role) setRole(role);
+    setBranding(logoUrl, primaryColor);
+    if (primaryColor) applyPrimaryColor(primaryColor);
   }
 
   useEffect(() => {
