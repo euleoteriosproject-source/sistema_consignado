@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, ShoppingCart, Info } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import { settlementsApi } from "@/lib/api/settlements";
 import { resellersApi } from "@/lib/api/resellers";
 import { consignmentsApi } from "@/lib/api/consignments";
@@ -294,11 +295,7 @@ export function SettlementFormModal({ open, onClose }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Data do acerto</Label>
-              <Input
-                type="date"
-                value={settlementDate}
-                onChange={(e) => setSettlementDate(e.target.value)}
-              />
+              <DatePicker value={settlementDate} onChange={setSettlementDate} />
             </div>
             <div className="space-y-1">
               <Label>Forma de pagamento *</Label>

@@ -13,9 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Building2, User, Tag, X, Plus } from "lucide-react";
+import { Loader2, Save, Building2, User, Tag, X, Plus, Image } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { TenantSettings, UserProfile } from "@/types";
 
 const profileSchema = z.object({
@@ -43,6 +43,24 @@ export default function ConfiguracoesPage() {
   });
 
   const [newCategory, setNewCategory] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [primaryColor, setPrimaryColor] = useState("#B8860B");
+
+  useEffect(() => {
+    if (settings) {
+      setLogoUrl(settings.logoUrl ?? "");
+      setPrimaryColor(settings.primaryColor ?? "#B8860B");
+    }
+  }, [settings]);
+
+  const updateBranding = useMutation({
+    mutationFn: () => settingsApi.update({ logoUrl: logoUrl || null, primaryColor }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("Identidade visual atualizada!");
+    },
+    onError: () => toast.error("Erro ao atualizar"),
+  });
 
   const { data: categories = [], isLoading: loadingCats } = useQuery({
     queryKey: ["product-categories"],
@@ -137,6 +155,57 @@ export default function ConfiguracoesPage() {
                   </div>
                 </div>
               ) : null}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Image className="h-4 w-4" />
+                Identidade visual
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1">
+                <Label>URL do logo</Label>
+                <div className="flex gap-3 items-center">
+                  <Input
+                    placeholder="https://..."
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    className="flex-1"
+                  />
+                  {logoUrl && (
+                    <img src={logoUrl} alt="Logo preview" className="h-10 w-10 rounded object-contain border" />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Cole a URL pública de uma imagem (PNG ou SVG recomendado)</p>
+              </div>
+              <div className="space-y-1">
+                <Label>Cor principal</Label>
+                <div className="flex gap-3 items-center">
+                  <input
+                    type="color"
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="h-10 w-16 rounded border cursor-pointer p-1"
+                  />
+                  <Input
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="w-32 font-mono uppercase"
+                    maxLength={7}
+                  />
+                  <div className="h-8 w-8 rounded-full border" style={{ background: primaryColor }} />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={() => updateBranding.mutate()} disabled={updateBranding.isPending}>
+                  {updateBranding.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar identidade
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

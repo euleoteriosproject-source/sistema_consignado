@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, ShoppingCart, RotateCcw, AlertTriangle, Info } from "lucide-react";
@@ -112,12 +113,7 @@ export function MovementModal({ open, onClose, consignmentId, resellerId, items,
           <div className="flex items-center gap-4">
             <div className="space-y-1 flex-1">
               <Label>Data da movimentação</Label>
-              <Input
-                type="date"
-                value={movementDate}
-                onChange={(e) => setMovementDate(e.target.value)}
-                className="w-44"
-              />
+              <DatePicker value={movementDate} onChange={setMovementDate} className="w-44" />
             </div>
             <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded p-2 mt-4">
               <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />

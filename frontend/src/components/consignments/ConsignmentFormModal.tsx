@@ -8,6 +8,7 @@ import { resellersApi } from "@/lib/api/resellers";
 import { productsApi } from "@/lib/api/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -90,11 +91,11 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
             </div>
             <div className="space-y-1">
               <Label>Data de entrega</Label>
-              <Input type="date" value={deliveredAt} onChange={(e) => setDeliveredAt(e.target.value)} />
+              <DatePicker value={deliveredAt} onChange={setDeliveredAt} />
             </div>
             <div className="space-y-1">
               <Label>Previsão de retorno</Label>
-              <Input type="date" value={expectedReturnAt} onChange={(e) => setExpectedReturnAt(e.target.value)} />
+              <DatePicker value={expectedReturnAt} onChange={setExpectedReturnAt} placeholder="Sem previsão" />
             </div>
           </div>
 

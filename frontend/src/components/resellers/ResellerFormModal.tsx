@@ -11,6 +11,7 @@ import { settingsApi } from "@/lib/api/settings";
 import type { UserProfile } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -247,7 +248,11 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
                 </div>
                 <div className="space-y-1">
                   <Label>Data de nascimento</Label>
-                  <Input type="date" {...register("birthDate")} />
+                  <DatePicker
+                    value={watch("birthDate") ?? ""}
+                    onChange={(v) => setValue("birthDate", v)}
+                    placeholder="Selecionar data"
+                  />
                 </div>
                 <div className="col-span-2 space-y-1">
                   <Label>Observações</Label>
