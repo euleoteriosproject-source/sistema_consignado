@@ -53,11 +53,24 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
   const resellers = resPage?.content ?? [];
   const products = prodPage?.content ?? [];
 
+  function handleResellerChange(id: string) {
+    setResellerId(id);
+    if (isOwner && !selectedManagerId) {
+      const r = resellers.find((r) => r.id === id);
+      if (r?.managerId) setSelectedManagerId(r.managerId);
+    }
+  }
+
+  // Determina o managerId efetivo: se owner, usa a gestora da revendedora (ou a selecionada)
+  const effectiveManagerId = isOwner
+    ? (selectedManagerId || resellers.find((r) => r.id === resellerId)?.managerId || "")
+    : "";
+
   const mutation = useMutation({
     mutationFn: () =>
       consignmentsApi.create({
         resellerId,
-        ...(isOwner && selectedManagerId ? { managerId: selectedManagerId } : {}),
+        ...(isOwner && effectiveManagerId ? { managerId: effectiveManagerId } : {}),
         deliveredAt,
         expectedReturnAt: expectedReturnAt || undefined,
         notes: notes || undefined,
@@ -97,7 +110,7 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
             {isOwner && (
               <div className="col-span-2 space-y-1">
                 <Label>Gestora responsável</Label>
-                <Select value={selectedManagerId} onValueChange={(v) => { setSelectedManagerId(v); setResellerId(""); }}>
+                <Select value={effectiveManagerId} onValueChange={(v) => { setSelectedManagerId(v); setResellerId(""); }}>
                   <SelectTrigger><SelectValue placeholder="Todas as gestoras" /></SelectTrigger>
                   <SelectContent>
                     {managers?.filter(m => m.active).map((m) => (
@@ -109,7 +122,7 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
             )}
             <div className="col-span-2 space-y-1">
               <Label>Revendedor(a) *</Label>
-              <Select value={resellerId} onValueChange={setResellerId}>
+              <Select value={resellerId} onValueChange={handleResellerChange}>
                 <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>
                   {resellers.map((r) => (
