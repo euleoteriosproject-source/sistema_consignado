@@ -112,8 +112,15 @@ public class ProductService {
 
         // Gestora vê apenas produtos que recebeu via lotes manager_stock do dono
         List<UUID> managerProductIds = null;
+        Map<UUID, int[]> managerQty = new java.util.HashMap<>(); // [totalSent, totalAvailable]
         if ("manager".equalsIgnoreCase(role)) {
             managerProductIds = consignmentItemRepository.findProductIdsByActiveManagerStockForManager(userId);
+            for (var row : consignmentItemRepository.findManagerStockQuantitiesByProduct(userId)) {
+                UUID pid = (UUID) row[0];
+                int sent  = ((Number) row[1]).intValue();
+                int avail = ((Number) row[2]).intValue();
+                managerQty.put(pid, new int[]{ sent, Math.max(avail, 0) });
+            }
         }
 
         var spec = buildSpec(filter, tenantId, managerProductIds);
@@ -131,7 +138,23 @@ public class ProductService {
                 img -> signedUrls.get(img.getStoragePath())
             ));
 
-        return page.map(p -> toSummary(p, primaryUrls.get(p.getId())));
+        final Map<UUID, int[]> finalManagerQty = managerQty;
+        return page.map(p -> {
+            int[] qty = finalManagerQty.get(p.getId());
+            if (qty != null) {
+                // Para gestora: sobrescreve total/disponível com quantidades do consignment
+                var overridden = new Product();
+                overridden.setId(p.getId()); overridden.setCode(p.getCode());
+                overridden.setName(p.getName()); overridden.setDescription(p.getDescription());
+                overridden.setCategory(p.getCategory()); overridden.setCostPrice(p.getCostPrice());
+                overridden.setSalePrice(p.getSalePrice()); overridden.setCommissionRate(p.getCommissionRate());
+                overridden.setStockTotal(qty[0]);
+                overridden.setStockAvailable(qty[1]);
+                overridden.setActive(p.isActive()); overridden.setTenantId(p.getTenantId());
+                return toSummary(overridden, primaryUrls.get(p.getId()));
+            }
+            return toSummary(p, primaryUrls.get(p.getId()));
+        });
     }
 
     @Transactional

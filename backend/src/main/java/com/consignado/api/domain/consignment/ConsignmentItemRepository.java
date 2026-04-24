@@ -37,4 +37,16 @@ public interface ConsignmentItemRepository extends JpaRepository<ConsignmentItem
         "AND c.status NOT IN ('settled')")
     List<UUID> findProductIdsByActiveManagerStockForManager(
         @org.springframework.data.repository.query.Param("managerId") UUID managerId);
+
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT ci.productId, " +
+        "SUM(ci.quantitySent), " +
+        "SUM(ci.quantitySent - ci.quantitySold - ci.quantityReturned - ci.quantityLost) " +
+        "FROM ConsignmentItem ci " +
+        "JOIN Consignment c ON c.id = ci.consignmentId " +
+        "WHERE c.managerId = :managerId AND c.consignmentType = 'manager_stock' " +
+        "AND c.status NOT IN ('settled') " +
+        "GROUP BY ci.productId")
+    List<Object[]> findManagerStockQuantitiesByProduct(
+        @org.springframework.data.repository.query.Param("managerId") UUID managerId);
 }
