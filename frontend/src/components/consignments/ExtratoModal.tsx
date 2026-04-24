@@ -150,7 +150,7 @@ ${settlementsHtml}
   <div class="sig"><strong>${sigLeft.name}</strong>${sigLeft.role}</div>
   <div class="sig"><strong>${sigRight.name}</strong>${sigRight.role}</div>
 </div>
-<div class="footer">Este documento comprova a entrega e acerto das peças em consignação.</div>
+<div class="footer">${settlements.length > 0 ? "Este documento comprova a entrega e acerto das peças em consignação." : "Este documento comprova a entrega das peças em consignação."}</div>
 </body></html>`;
 
     const win = window.open("", "_blank", "width=960,height=720");

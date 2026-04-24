@@ -369,7 +369,7 @@ export default function FinanceiroPage() {
           </TabsTrigger>
           {isManager && (
             <TabsTrigger value="stock">
-              Acerto com dono
+              Estoque recebido
               {stockLots.length > 0 && (
                 <Badge variant="secondary" className="ml-1.5">{stockLots.length}</Badge>
               )}
@@ -541,9 +541,12 @@ export default function FinanceiroPage() {
 
         {isManager && (
           <TabsContent value="stock" className="space-y-4">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 px-4 py-3 text-sm text-blue-800 dark:text-blue-300">
+              Acompanhamento dos lotes que você recebeu do dono. Os acertos e pagamentos são registrados pelo proprietário.
+            </div>
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Lotes recebidos do dono — em aberto</CardTitle>
+                <CardTitle className="text-sm">Lotes em aberto</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {loadingStock ? (
@@ -556,34 +559,41 @@ export default function FinanceiroPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Retirada</TableHead>
-                          <TableHead className="text-right">Itens totais</TableHead>
-                          <TableHead className="text-right">Itens restantes</TableHead>
-                          <TableHead className="text-right">Val. Total</TableHead>
+                          <TableHead className="text-right">Enviados</TableHead>
+                          <TableHead className="text-right">Vendidos</TableHead>
+                          <TableHead className="text-right">Devolvidos</TableHead>
+                          <TableHead className="text-right">Perdidos</TableHead>
+                          <TableHead className="text-right">Pendentes</TableHead>
+                          <TableHead className="text-right">Val. Pendente</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead />
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {stockLots.map((c) => (
-                          <TableRow key={c.id}>
-                            <TableCell>{formatDate(c.deliveredAt)}</TableCell>
-                            <TableCell className="text-right">{c.totalItems}</TableCell>
-                            <TableCell className="text-right font-medium">
-                              {c.totalItems - c.totalSold - c.totalReturned - c.totalLost}
-                            </TableCell>
-                            <TableCell className="text-right text-orange-600 font-medium">{formatCurrency(c.totalValue ?? 0)}</TableCell>
-                            <TableCell>
-                              <Badge variant={consignmentStatusVariant[c.status] ?? "secondary"}>
-                                {consignmentStatusLabel[c.status] ?? c.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => router.push(`/consignados/${c.id}`)}>
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {stockLots.map((c) => {
+                          const pending = c.totalItems - c.totalSold - c.totalReturned - c.totalLost;
+                          return (
+                            <TableRow key={c.id}>
+                              <TableCell>{formatDate(c.deliveredAt)}</TableCell>
+                              <TableCell className="text-right">{c.totalItems}</TableCell>
+                              <TableCell className="text-right text-green-600">{c.totalSold}</TableCell>
+                              <TableCell className="text-right text-blue-600">{c.totalReturned}</TableCell>
+                              <TableCell className="text-right text-red-600">{c.totalLost}</TableCell>
+                              <TableCell className="text-right font-medium">{pending}</TableCell>
+                              <TableCell className="text-right text-orange-600 font-medium">{formatCurrency(c.totalValue ?? 0)}</TableCell>
+                              <TableCell>
+                                <Badge variant={consignmentStatusVariant[c.status] ?? "secondary"}>
+                                  {consignmentStatusLabel[c.status] ?? c.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => router.push(`/consignados/${c.id}`)}>
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
