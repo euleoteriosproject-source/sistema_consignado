@@ -41,12 +41,13 @@ public class ConsignmentController {
         @RequestParam(required = false) String status,
         @RequestParam(required = false) UUID resellerId,
         @RequestParam(required = false) UUID managerId,
+        @RequestParam(required = false) String consignmentType,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        var filter = new ConsignmentFilterRequest(status, resellerId, managerId, from, to);
+        var filter = new ConsignmentFilterRequest(status, resellerId, managerId, consignmentType, from, to);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(ApiResponse.ok(PageResponse.from(consignmentService.findAll(filter, pageable))));
     }

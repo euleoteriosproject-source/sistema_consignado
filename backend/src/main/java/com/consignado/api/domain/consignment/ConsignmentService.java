@@ -452,6 +452,9 @@ public class ConsignmentService {
             if (f.managerId() != null) {
                 predicates.add(cb.equal(root.get("managerId"), f.managerId()));
             }
+            if (f.consignmentType() != null && !f.consignmentType().isBlank()) {
+                predicates.add(cb.equal(root.get("consignmentType"), f.consignmentType()));
+            }
             if (f.from() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("deliveredAt"), f.from()));
             }

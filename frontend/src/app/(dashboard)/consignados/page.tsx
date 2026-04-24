@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, UserCog, ChevronLeft } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, UserCog, ChevronLeft, Package } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ConsignmentFormModal } from "@/components/consignments/ConsignmentFormModal";
 import { useAuthStore } from "@/stores/authStore";
@@ -31,6 +32,7 @@ export default function ConsignadosPage() {
   const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
+  const [managerTab, setManagerTab] = useState<"reseller" | "manager_stock">("reseller");
 
   const { data: managers } = useQuery({
     queryKey: ["managers"],
@@ -38,9 +40,11 @@ export default function ConsignadosPage() {
     enabled: isOwner,
   });
 
-  const params: Record<string, string> = { page: String(page), size: "20" };
+  // Owner: vê tudo; Manager: filtra por tipo conforme tab
+  const params: Record<string, string | undefined> = { page: String(page), size: "20" };
   if (status !== "all") params.status = status;
   if (selectedManagerId) params.managerId = selectedManagerId;
+  if (!isOwner) params.consignmentType = managerTab;
 
   const { data, isLoading } = useQuery<PageResponse<ConsignmentSummary>>({
     queryKey: ["consignments", params],
@@ -61,6 +65,20 @@ export default function ConsignadosPage() {
           Novo lote
         </Button>
       </div>
+
+      {/* Tabs para gestora */}
+      {!isOwner && (
+        <Tabs value={managerTab} onValueChange={(v) => { setManagerTab(v as "reseller" | "manager_stock"); setPage(0); }}>
+          <TabsList>
+            <TabsTrigger value="reseller" className="gap-1.5">
+              <UserCog className="h-3.5 w-3.5" /> Minhas revendedoras
+            </TabsTrigger>
+            <TabsTrigger value="manager_stock" className="gap-1.5">
+              <Package className="h-3.5 w-3.5" /> Lotes recebidos do dono
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
 
       {/* Gestoras cards (owner only, no filter active) */}
       {isOwner && !selectedManagerId && managers && managers.length > 0 && (

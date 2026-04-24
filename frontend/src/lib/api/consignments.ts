@@ -2,8 +2,9 @@ import { apiFetch } from "./client";
 import type { PageResponse, Consignment, ConsignmentSummary } from "@/types";
 
 export const consignmentsApi = {
-  list: (params?: Record<string, string>) => {
-    const q = params ? "?" + new URLSearchParams(params).toString() : "";
+  list: (params?: Record<string, string | undefined>) => {
+    const clean = Object.fromEntries(Object.entries(params ?? {}).filter(([, v]) => v !== undefined)) as Record<string, string>;
+    const q = Object.keys(clean).length ? "?" + new URLSearchParams(clean).toString() : "";
     return apiFetch<PageResponse<ConsignmentSummary>>(`/api/v1/consignments${q}`);
   },
   get: (id: string) => apiFetch<Consignment>(`/api/v1/consignments/${id}`),

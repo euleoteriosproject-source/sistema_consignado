@@ -49,6 +49,13 @@ export function ExtratoModal({ consignmentId, onClose }: Props) {
   const totalPecas = c?.items.reduce((a, i) => a + i.quantitySent, 0) ?? 0;
   const totalValor = c?.items.reduce((a, i) => a + i.quantitySent * i.salePrice, 0) ?? 0;
   const totalAcertos = settlements.reduce((a, st) => a + st.netToReceive, 0);
+  const isStock = c?.consignmentType === "manager_stock";
+  const sigLeft  = isStock
+    ? { name: s?.name ?? "Proprietário(a)", role: "Proprietário(a) — consignou" }
+    : { name: c?.managerName ?? "", role: "Responsável pelo lote" };
+  const sigRight = isStock
+    ? { name: c?.managerName ?? "", role: "Gestora — recebido" }
+    : { name: c?.resellerName ?? "", role: "Revendedora — recebido" };
 
   function handlePrint() {
     if (!c || !s) return;
@@ -140,8 +147,8 @@ td.code{font-family:monospace;color:#555;font-size:10px}
 </div>
 ${settlementsHtml}
 <div class="sigs">
-  <div class="sig"><strong>${c.managerName}</strong>Responsável pelo lote</div>
-  <div class="sig"><strong>${c.resellerName}</strong>Revendedora (recebido)</div>
+  <div class="sig"><strong>${sigLeft.name}</strong>${sigLeft.role}</div>
+  <div class="sig"><strong>${sigRight.name}</strong>${sigRight.role}</div>
 </div>
 <div class="footer">Este documento comprova a entrega e acerto das peças em consignação.</div>
 </body></html>`;
@@ -264,12 +271,12 @@ ${settlementsHtml}
             <Separator />
             <div className="grid grid-cols-2 gap-8 pt-2">
               <div className="border-t pt-2 text-center">
-                <p className="font-semibold text-sm">{c.managerName}</p>
-                <p className="text-xs text-muted-foreground">Responsável pelo lote</p>
+                <p className="font-semibold text-sm">{sigLeft.name}</p>
+                <p className="text-xs text-muted-foreground">{sigLeft.role}</p>
               </div>
               <div className="border-t pt-2 text-center">
-                <p className="font-semibold text-sm">{c.resellerName}</p>
-                <p className="text-xs text-muted-foreground">Revendedora (recebido)</p>
+                <p className="font-semibold text-sm">{sigRight.name}</p>
+                <p className="text-xs text-muted-foreground">{sigRight.role}</p>
               </div>
             </div>
           </div>

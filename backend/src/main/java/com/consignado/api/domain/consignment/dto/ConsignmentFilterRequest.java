@@ -7,6 +7,7 @@ public record ConsignmentFilterRequest(
     String status,
     UUID resellerId,
     UUID managerId,
+    String consignmentType,
     LocalDate from,
     LocalDate to
 ) {}
