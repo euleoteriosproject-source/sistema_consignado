@@ -23,6 +23,7 @@ import type { PageResponse, Settlement, SettlementsSummary, ConsignmentSummary, 
 const paymentLabel: Record<string, string> = {
   cash: "Dinheiro", pix: "PIX", transfer: "Transferência", other: "Outro",
 };
+const fmtPayment = (v: string) => paymentLabel[v?.toLowerCase()] ?? v;
 const consignmentStatusVariant: Record<string, "default" | "outline" | "destructive" | "secondary"> = {
   open: "default", partially_settled: "outline", overdue: "destructive",
 };
@@ -89,7 +90,7 @@ td.r{text-align:right}
 <div class="info">
   <div><label>Revendedora</label><span>${settlement.resellerName}</span></div>
   <div><label>Responsável</label><span>${settlement.managerName}</span></div>
-  <div><label>Forma de pagamento</label><span>${paymentLabel[settlement.paymentMethod] ?? settlement.paymentMethod}</span></div>
+  <div><label>Forma de pagamento</label><span>${fmtPayment(settlement.paymentMethod)}</span></div>
   <div><label>Data</label><span>${new Date(settlement.settlementDate).toLocaleDateString("pt-BR")}</span></div>
 </div>
 ${soldItems.length > 0 ? `
@@ -147,7 +148,7 @@ ${settlement.notes ? `<div class="declaration"><strong>Obs.:</strong> ${settleme
             </div>
             <div>
               <p className="text-muted-foreground text-xs">Forma de pagamento</p>
-              <Badge variant="outline">{paymentLabel[settlement.paymentMethod] ?? settlement.paymentMethod}</Badge>
+              <Badge variant="outline">{fmtPayment(settlement.paymentMethod)}</Badge>
             </div>
           </div>
 
@@ -399,7 +400,7 @@ export default function FinanceiroPage() {
                             {formatCurrency(s.netToReceive)}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{paymentLabel[s.paymentMethod] ?? s.paymentMethod}</Badge>
+                            <Badge variant="outline">{fmtPayment(s.paymentMethod)}</Badge>
                           </TableCell>
                         </TableRow>
                       ))}
