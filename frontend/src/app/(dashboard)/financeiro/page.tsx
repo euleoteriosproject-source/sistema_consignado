@@ -14,10 +14,11 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, TrendingUp, DollarSign, Wallet, Clock, ExternalLink, Receipt, AlertCircle } from "lucide-react";
+import { Plus, TrendingUp, DollarSign, Wallet, Clock, ExternalLink, Receipt, AlertCircle, Printer } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { SettlementFormModal } from "@/components/settlements/SettlementFormModal";
-import type { PageResponse, Settlement, SettlementsSummary, ConsignmentSummary, Consignment, ResellerSummary } from "@/types";
+import { settingsApi } from "@/lib/api/settings";
+import type { PageResponse, Settlement, SettlementsSummary, ConsignmentSummary, Consignment, ResellerSummary, TenantSettings } from "@/types";
 
 const paymentLabel: Record<string, string> = {
   cash: "Dinheiro", pix: "PIX", transfer: "Transferência", other: "Outro",
@@ -35,19 +36,98 @@ function SettlementDetailModal({ settlement, onClose }: { settlement: Settlement
     queryFn: () => consignmentsApi.get(settlement.consignmentId!),
     enabled: !!settlement.consignmentId,
   });
+  const { data: tenantSettings } = useQuery<TenantSettings>({
+    queryKey: ["settings"],
+    queryFn: settingsApi.get,
+  });
 
   const commissionRate = settlement.totalSoldValue > 0
     ? ((settlement.totalCommission / settlement.totalSoldValue) * 100).toFixed(1)
     : "0";
 
+  function handlePrintRecibo() {
+    const color = tenantSettings?.primaryColor ?? "#B8860B";
+    const logoHtml = tenantSettings?.logoUrl
+      ? `<img src="${tenantSettings.logoUrl}" style="height:56px;width:56px;object-fit:contain" alt="logo"/>`
+      : `<div style="width:48px;height:48px;border-radius:8px;background:${color};display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:18px">${(tenantSettings?.name ?? "?").charAt(0)}</div>`;
+    const soldItems = consignment?.items.filter(i => i.quantitySold > 0) ?? [];
+
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8"/><title>Recibo de Acerto</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:12px;color:#1a1a1a;padding:24px;max-width:600px;margin:0 auto}
+@page{size:A5;margin:1.2cm}
+.header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid ${color};padding-bottom:12px;margin-bottom:16px}
+.company{display:flex;align-items:center;gap:10px}
+.co-name{font-size:15px;font-weight:bold;color:${color}}
+.co-sub{font-size:9px;color:#666}
+.recibo-title{text-align:right}
+.recibo-title h1{font-size:14px;font-weight:bold;color:${color};text-transform:uppercase}
+.recibo-title p{font-size:9px;color:#666;margin-top:2px}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#f9f9f9;border:1px solid #e5e5e5;border-radius:5px;padding:10px;margin-bottom:14px}
+.info label{font-size:8px;text-transform:uppercase;color:#888;display:block;margin-bottom:2px}
+.info span{font-size:11px;font-weight:600}
+table{width:100%;border-collapse:collapse;margin-bottom:14px}
+thead tr{background:${color};color:#fff}
+th{padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase}
+th.r{text-align:right}
+tr:nth-child(even){background:#f5f5f5}
+td{padding:5px 8px;font-size:11px;border-bottom:1px solid #eee}
+td.r{text-align:right}
+.breakdown{background:#f9f9f9;border:1px solid #e5e5e5;border-radius:5px;padding:10px;margin-bottom:16px}
+.breakdown .row{display:flex;justify-content:space-between;padding:3px 0;font-size:11px}
+.breakdown .row.total{font-weight:bold;font-size:13px;border-top:1px solid #ccc;margin-top:6px;padding-top:6px;color:${color}}
+.declaration{font-size:10px;color:#555;margin-bottom:18px;padding:10px;background:#fffbeb;border-left:3px solid ${color}}
+.sig{border-top:1px solid #999;padding-top:6px;text-align:center;font-size:10px;color:#555;margin-top:36px}
+.sig strong{display:block;font-size:11px;color:#333;margin-bottom:2px}
+</style></head><body>
+<div class="header">
+  <div class="company">${logoHtml}<div><div class="co-name">${tenantSettings?.name ?? ""}</div><div class="co-sub">Semijoias Folheadas</div></div></div>
+  <div class="recibo-title"><h1>Recibo de Acerto</h1><p>${new Date(settlement.settlementDate).toLocaleDateString("pt-BR")}</p></div>
+</div>
+<div class="info">
+  <div><label>Revendedora</label><span>${settlement.resellerName}</span></div>
+  <div><label>Responsável</label><span>${settlement.managerName}</span></div>
+  <div><label>Forma de pagamento</label><span>${paymentLabel[settlement.paymentMethod] ?? settlement.paymentMethod}</span></div>
+  <div><label>Data</label><span>${new Date(settlement.settlementDate).toLocaleDateString("pt-BR")}</span></div>
+</div>
+${soldItems.length > 0 ? `
+<table>
+  <thead><tr><th>Produto</th><th class="r">Qtd.</th><th class="r">Val. Vendido</th></tr></thead>
+  <tbody>${soldItems.map(i => `<tr><td>${i.productName}</td><td class="r">${i.quantitySold}</td><td class="r">${formatCurrency(i.soldValue)}</td></tr>`).join("")}</tbody>
+</table>` : ""}
+<div class="breakdown">
+  <div class="row"><span>Total vendido</span><span>${formatCurrency(settlement.totalSoldValue)}</span></div>
+  <div class="row" style="color:#d97706"><span>Comissão (${commissionRate}%)</span><span>−${formatCurrency(settlement.totalCommission)}</span></div>
+  <div class="row total"><span>Líquido recebido</span><span>${formatCurrency(settlement.netToReceive)}</span></div>
+</div>
+${settlement.notes ? `<div class="declaration"><strong>Obs.:</strong> ${settlement.notes}</div>` : ""}
+<p class="declaration">Declaro que recebi o valor de <strong>${formatCurrency(settlement.netToReceive)}</strong> referente ao acerto de consignação realizado em ${new Date(settlement.settlementDate).toLocaleDateString("pt-BR")}.</p>
+<div class="sig"><strong>${settlement.resellerName}</strong>Revendedora</div>
+</body></html>`;
+
+    const win = window.open("", "_blank", "width=700,height=600");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 500);
+  }
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Receipt className="h-4 w-4" />
-            Extrato do acerto
-          </DialogTitle>
+          <div className="flex items-center justify-between pr-6">
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-4 w-4" />
+              Recibo de Acerto
+            </DialogTitle>
+            <Button size="sm" variant="outline" onClick={handlePrintRecibo}>
+              <Printer className="h-4 w-4 mr-1" /> Imprimir
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4">

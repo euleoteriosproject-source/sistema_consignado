@@ -553,7 +553,7 @@ export default function ConsignmentDetailPage() {
           resellerId={consignment.resellerId}
           items={consignment.items}
           alreadySettledGross={totalSettledGross}
-          onSettled={() => setCloseOpen(false)}
+          onSettled={() => { setCloseOpen(false); setExtratoOpen(true); }}
           onSettlementOffer={(data) => setSettlementOffer(data)}
         />
       )}

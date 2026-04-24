@@ -63,7 +63,8 @@ export async function apiUpload(path: string, formData: FormData): Promise<unkno
     const error = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(error?.message ?? `HTTP ${res.status}`);
   }
-  return res.json();
+  const body = await res.json();
+  return body.data ?? body;
 }
 
 export async function apiDownload(path: string): Promise<Blob> {
