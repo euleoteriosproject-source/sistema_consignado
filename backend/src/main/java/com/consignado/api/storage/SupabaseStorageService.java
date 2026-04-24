@@ -105,7 +105,7 @@ public class SupabaseStorageService {
                         String path = node.path("path").asText();
                         String signedPath = node.path("signedURL").asText();
                         if (!path.isBlank() && !signedPath.isBlank()) {
-                            result.put(path, appProperties.supabase().url() + signedPath);
+                            result.put(path, appProperties.supabase().url() + "/storage/v1" + signedPath);
                         }
                     }
                 }
@@ -147,7 +147,8 @@ public class SupabaseStorageService {
             if (signedPath.isBlank()) {
                 throw new BusinessException("Resposta inválida do storage ao gerar URL");
             }
-            return appProperties.supabase().url() + signedPath;
+            // signedURL é relativo a supabaseUrl/storage/v1
+            return appProperties.supabase().url() + "/storage/v1" + signedPath;
         } catch (IOException e) {
             throw new BusinessException("Falha ao gerar URL assinada: " + e.getMessage());
         }
