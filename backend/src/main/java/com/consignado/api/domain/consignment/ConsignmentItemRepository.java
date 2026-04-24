@@ -29,4 +29,12 @@ public interface ConsignmentItemRepository extends JpaRepository<ConsignmentItem
     Optional<ConsignmentItem> findByIdAndConsignmentIdAndTenantId(UUID id, UUID consignmentId, UUID tenantId);
 
     List<ConsignmentItem> findByProductIdAndTenantId(UUID productId, UUID tenantId);
+
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT DISTINCT ci.productId FROM ConsignmentItem ci " +
+        "JOIN Consignment c ON c.id = ci.consignmentId " +
+        "WHERE c.managerId = :managerId AND c.consignmentType = 'manager_stock' " +
+        "AND c.status NOT IN ('settled')")
+    List<UUID> findProductIdsByActiveManagerStockForManager(
+        @org.springframework.data.repository.query.Param("managerId") UUID managerId);
 }

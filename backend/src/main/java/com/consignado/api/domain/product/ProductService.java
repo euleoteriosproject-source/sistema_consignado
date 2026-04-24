@@ -107,7 +107,17 @@ public class ProductService {
     @Transactional(readOnly = true)
     public Page<ProductSummaryResponse> findAll(ProductFilterRequest filter, Pageable pageable) {
         var tenantId = TenantContext.TENANT_ID.get();
-        var spec = buildSpec(filter, tenantId);
+        var role = TenantContext.ROLE.get();
+        var userId = TenantContext.USER_ID.get();
+
+        // Gestora vê apenas produtos que recebeu via lotes manager_stock do dono
+        List<UUID> managerProductIds = null;
+        if ("manager".equalsIgnoreCase(role)) {
+            managerProductIds = consignmentItemRepository.findProductIdsByActiveManagerStockForManager(userId);
+        }
+
+        var spec = buildSpec(filter, tenantId, managerProductIds);
+
         var page = productRepository.findAll(spec, pageable);
 
         var productIds = page.stream().map(Product::getId).collect(Collectors.toSet());
@@ -312,11 +322,20 @@ public class ProductService {
         }
     }
 
-    private Specification<Product> buildSpec(ProductFilterRequest filter, UUID tenantId) {
+    private Specification<Product> buildSpec(ProductFilterRequest filter, UUID tenantId,
+                                              java.util.List<UUID> allowedProductIds) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.isNull(root.get("deletedAt")));
             predicates.add(cb.equal(root.get("tenantId"), tenantId));
+
+            if (allowedProductIds != null) {
+                if (allowedProductIds.isEmpty()) {
+                    predicates.add(cb.disjunction()); // gestora sem estoque: retorna vazio
+                } else {
+                    predicates.add(root.get("id").in(allowedProductIds));
+                }
+            }
 
             if (filter.search() != null && !filter.search().isBlank()) {
                 var pattern = "%" + filter.search().toLowerCase() + "%";
