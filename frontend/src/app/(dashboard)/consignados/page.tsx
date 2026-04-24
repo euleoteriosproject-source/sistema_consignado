@@ -28,6 +28,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "outlin
 export default function ConsignadosPage() {
   const router = useRouter();
   const role = useAuthStore((s) => s.role);
+  const userName = useAuthStore((s) => s.userName);
   const isOwner = role === "owner";
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(0);
@@ -47,7 +48,10 @@ export default function ConsignadosPage() {
   // Manager: filtra por tipo conforme tab
   const params: Record<string, string | undefined> = { page: String(page), size: "20" };
   if (status !== "all") params.status = status;
-  if (isOwner && selectedManagerId) params.managerId = selectedManagerId;
+  if (isOwner && selectedManagerId) {
+    params.managerId = selectedManagerId;
+    params.consignmentType = "reseller"; // view da gestora: só lotes dela com revendedoras
+  }
   if (isOwner && !selectedManagerId) params.ownOnly = "true";
   if (!isOwner) params.consignmentType = managerTab;
 
@@ -160,7 +164,11 @@ export default function ConsignadosPage() {
                         onClick={() => router.push(`/consignados/${c.id}`)}
                       >
                         <TableCell className="font-medium">{c.resellerName}</TableCell>
-                        <TableCell>{c.managerName}</TableCell>
+                        <TableCell>
+                          {c.consignmentType === "manager_stock"
+                            ? <span>{userName ?? "Dono"} <span className="text-xs text-muted-foreground">(criou)</span></span>
+                            : c.managerName}
+                        </TableCell>
                         <TableCell>{formatDate(c.deliveredAt)}</TableCell>
                         <TableCell>{c.expectedReturnAt ? formatDate(c.expectedReturnAt) : "—"}</TableCell>
                         <TableCell className="text-right">{c.totalItems}</TableCell>
