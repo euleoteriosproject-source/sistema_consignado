@@ -78,10 +78,15 @@ public class ConsignmentService {
             productMap.put(product.getId(), product);
         }
 
+        // Owner pode delegar o lote a uma gestora específica via managerId no request
+        var role = TenantContext.ROLE.get();
+        var effectiveManagerId = ("owner".equalsIgnoreCase(role) && request.managerId() != null)
+            ? request.managerId() : userId;
+
         var consignment = new Consignment();
         consignment.setTenantId(tenantId);
         consignment.setResellerId(request.resellerId());
-        consignment.setManagerId(userId);
+        consignment.setManagerId(effectiveManagerId);
         consignment.setDeliveredAt(request.deliveredAt() != null ? request.deliveredAt() : LocalDate.now());
         consignment.setExpectedReturnAt(request.expectedReturnAt());
         consignment.setNotes(request.notes());

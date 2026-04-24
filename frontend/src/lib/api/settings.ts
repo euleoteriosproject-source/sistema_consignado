@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, apiUpload } from "./client";
 import type { TenantSettings, Manager, UserProfile } from "@/types";
 
 export const settingsApi = {
@@ -21,4 +21,6 @@ export const settingsApi = {
     }),
   deleteManager: (id: string) =>
     apiFetch<void>(`/api/v1/settings/managers/${id}`, { method: "DELETE" }),
+  uploadLogo: (formData: FormData) =>
+    apiUpload("/api/v1/settings/logo", formData) as Promise<string>,
 };

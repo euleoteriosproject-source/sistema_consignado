@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.consignado.api.domain.settings.dto.CreateManagerRequest;
 import com.consignado.api.domain.settings.dto.ManagerResponse;
@@ -59,6 +61,12 @@ public class SettingsController {
         @RequestBody UpdateProfileRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.ok(settingsService.updateProfile(request)));
+    }
+
+    @PostMapping("/logo")
+    public ResponseEntity<ApiResponse<String>> uploadLogo(@RequestParam("file") MultipartFile file) {
+        requireOwner();
+        return ResponseEntity.ok(ApiResponse.ok(settingsService.uploadLogo(file)));
     }
 
     @GetMapping("/managers")

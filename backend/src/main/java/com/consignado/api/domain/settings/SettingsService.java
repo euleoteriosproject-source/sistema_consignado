@@ -5,8 +5,10 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.consignado.api.domain.reseller.ResellerRepository;
+import com.consignado.api.storage.SupabaseStorageService;
 import com.consignado.api.domain.settings.dto.CreateManagerRequest;
 import com.consignado.api.domain.settings.dto.ManagerResponse;
 import com.consignado.api.domain.settings.dto.ProfileResponse;
@@ -38,6 +40,7 @@ public class SettingsService {
     private final ResellerRepository resellerRepository;
     private final ObjectMapper objectMapper;
     private final SupabaseAuthAdminService supabaseAuthAdminService;
+    private final SupabaseStorageService storageService;
 
     @Transactional(readOnly = true)
     public TenantSettingsResponse getSettings() {
@@ -61,6 +64,17 @@ public class SettingsService {
         tenantRepository.save(tenant);
         log.info("Settings updated for tenant={}", tenant.getId());
         return toResponse(tenant);
+    }
+
+    @Transactional
+    public String uploadLogo(MultipartFile file) {
+        var tenant = loadTenant();
+        String path = storageService.upload("logos/" + tenant.getId(), file);
+        String url  = storageService.getPublicUrl(path);
+        tenant.setLogoUrl(url);
+        tenantRepository.save(tenant);
+        log.info("Logo updated tenant={}", tenant.getId());
+        return url;
     }
 
     @Transactional(readOnly = true)

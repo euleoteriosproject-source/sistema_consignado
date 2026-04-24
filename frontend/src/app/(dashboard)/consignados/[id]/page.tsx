@@ -15,6 +15,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { MovementModal } from "@/components/consignments/MovementModal";
 import { PostMovementSettlementDialog } from "@/components/consignments/PostMovementSettlementDialog";
 import { CloseConsignmentModal } from "@/components/consignments/CloseConsignmentModal";
+import { ExtratoModal } from "@/components/consignments/ExtratoModal";
 import type { SettlementOfferData } from "@/components/consignments/MovementModal";
 import type { Consignment, ConsignmentItem, PageResponse, Settlement } from "@/types";
 
@@ -243,6 +244,7 @@ export default function ConsignmentDetailPage() {
   const router = useRouter();
   const [movementOpen, setMovementOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
+  const [extratoOpen, setExtratoOpen] = useState(false);
   const [settlementOffer, setSettlementOffer] = useState<SettlementOfferData | null>(null);
   const [historyItemId, setHistoryItemId] = useState<string | null>(null);
 
@@ -322,9 +324,8 @@ export default function ConsignmentDetailPage() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm"
-            onClick={() => window.open(`/romaneio/consignados/${id}`, "_blank")}>
-            <Printer className="h-4 w-4 mr-1" /> Romaneio
+          <Button variant="outline" size="sm" onClick={() => setExtratoOpen(true)}>
+            <Printer className="h-4 w-4 mr-1" /> Extrato
           </Button>
           {isOpen && (
             <>
@@ -572,6 +573,10 @@ export default function ConsignmentDetailPage() {
           onClose={() => setHistoryItemId(null)}
           deliveredAt={consignment.deliveredAt}
         />
+      )}
+
+      {extratoOpen && (
+        <ExtratoModal consignmentId={id} onClose={() => setExtratoOpen(false)} />
       )}
     </div>
   );

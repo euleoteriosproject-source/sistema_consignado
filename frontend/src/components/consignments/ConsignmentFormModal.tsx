@@ -6,6 +6,8 @@ import { Plus, Trash2, Loader2 } from "lucide-react";
 import { consignmentsApi } from "@/lib/api/consignments";
 import { resellersApi } from "@/lib/api/resellers";
 import { productsApi } from "@/lib/api/products";
+import { settingsApi } from "@/lib/api/settings";
+import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -19,15 +21,27 @@ interface Props { open: boolean; onClose: () => void }
 
 export function ConsignmentFormModal({ open, onClose }: Props) {
   const queryClient = useQueryClient();
+  const role = useAuthStore((s) => s.role);
+  const isOwner = role === "owner";
+  const [selectedManagerId, setSelectedManagerId] = useState("");
   const [resellerId, setResellerId] = useState("");
   const [deliveredAt, setDeliveredAt] = useState(new Date().toISOString().split("T")[0]);
   const [expectedReturnAt, setExpectedReturnAt] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<ItemRow[]>([{ productId: "", quantitySent: 1 }]);
 
+  const { data: managers } = useQuery({
+    queryKey: ["managers"],
+    queryFn: settingsApi.managers,
+    enabled: open && isOwner,
+  });
+
   const { data: resPage } = useQuery({
-    queryKey: ["resellers-active"],
-    queryFn: () => resellersApi.list({ size: "200", status: "active" }),
+    queryKey: ["resellers-active", selectedManagerId],
+    queryFn: () => resellersApi.list({
+      size: "200", status: "active",
+      ...(isOwner && selectedManagerId ? { managerId: selectedManagerId } : {}),
+    }),
     enabled: open,
   });
   const { data: prodPage } = useQuery({
@@ -43,6 +57,7 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
     mutationFn: () =>
       consignmentsApi.create({
         resellerId,
+        ...(isOwner && selectedManagerId ? { managerId: selectedManagerId } : {}),
         deliveredAt,
         expectedReturnAt: expectedReturnAt || undefined,
         notes: notes || undefined,
@@ -58,7 +73,8 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
   });
 
   const handleClose = () => {
-    setResellerId(""); setDeliveredAt(new Date().toISOString().split("T")[0]);
+    setSelectedManagerId(""); setResellerId("");
+    setDeliveredAt(new Date().toISOString().split("T")[0]);
     setExpectedReturnAt(""); setNotes(""); setItems([{ productId: "", quantitySent: 1 }]);
     onClose();
   };
@@ -78,6 +94,19 @@ export function ConsignmentFormModal({ open, onClose }: Props) {
         </DialogHeader>
         <div className="space-y-4 mt-2">
           <div className="grid grid-cols-2 gap-4">
+            {isOwner && (
+              <div className="col-span-2 space-y-1">
+                <Label>Gestora responsável</Label>
+                <Select value={selectedManagerId} onValueChange={(v) => { setSelectedManagerId(v); setResellerId(""); }}>
+                  <SelectTrigger><SelectValue placeholder="Todas as gestoras" /></SelectTrigger>
+                  <SelectContent>
+                    {managers?.filter(m => m.active).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="col-span-2 space-y-1">
               <Label>Revendedor(a) *</Label>
               <Select value={resellerId} onValueChange={setResellerId}>

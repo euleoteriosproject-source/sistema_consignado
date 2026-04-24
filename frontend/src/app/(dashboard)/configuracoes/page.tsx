@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Building2, User, Tag, X, Plus, Image } from "lucide-react";
+import { Loader2, Save, Building2, User, Tag, X, Plus, Image, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import type { TenantSettings, UserProfile } from "@/types";
@@ -60,6 +60,19 @@ export default function ConfiguracoesPage() {
       toast.success("Identidade visual atualizada!");
     },
     onError: () => toast.error("Erro ao atualizar"),
+  });
+
+  const uploadLogo = useMutation({
+    mutationFn: (file: File) => {
+      const fd = new FormData(); fd.append("file", file);
+      return settingsApi.uploadLogo(fd);
+    },
+    onSuccess: (url: string) => {
+      setLogoUrl(url);
+      qc.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("Logo enviado!");
+    },
+    onError: () => toast.error("Erro ao enviar logo"),
   });
 
   const { data: categories = [], isLoading: loadingCats } = useQuery({
@@ -166,20 +179,35 @@ export default function ConfiguracoesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <Label>URL do logo</Label>
+              <div className="space-y-2">
+                <Label>Logo</Label>
                 <div className="flex gap-3 items-center">
-                  <Input
-                    placeholder="https://..."
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    className="flex-1"
-                  />
                   {logoUrl && (
-                    <img src={logoUrl} alt="Logo preview" className="h-10 w-10 rounded object-contain border" />
+                    <img src={logoUrl} alt="Logo" className="h-14 w-14 rounded object-contain border" />
                   )}
+                  <div className="flex-1 space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Button type="button" variant="outline" size="sm" asChild disabled={uploadLogo.isPending}>
+                        <span>
+                          {uploadLogo.isPending
+                            ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            : <Upload className="h-4 w-4 mr-1" />}
+                          Subir imagem
+                        </span>
+                      </Button>
+                      <input
+                        type="file" accept="image/*" className="hidden"
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo.mutate(f); }}
+                      />
+                    </label>
+                    <Input
+                      placeholder="ou cole a URL aqui..."
+                      value={logoUrl}
+                      onChange={(e) => setLogoUrl(e.target.value)}
+                      className="text-xs"
+                    />
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Cole a URL pública de uma imagem (PNG ou SVG recomendado)</p>
               </div>
               <div className="space-y-1">
                 <Label>Cor principal</Label>
