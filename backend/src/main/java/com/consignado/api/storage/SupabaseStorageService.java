@@ -25,7 +25,11 @@ public class SupabaseStorageService {
     private final AppProperties appProperties;
 
     public String upload(String folder, MultipartFile file) {
-        String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+        String originalName = file.getOriginalFilename();
+        String safeName = originalName != null
+            ? originalName.replaceAll("[^a-zA-Z0-9._-]", "_")
+            : "file";
+        String fileName = UUID.randomUUID() + "_" + safeName;
         String storagePath = folder + "/" + fileName;
         String bucket = appProperties.supabase().storageBucket();
 
@@ -34,8 +38,9 @@ public class SupabaseStorageService {
 
         try {
             byte[] bytes = file.getBytes();
-            String contentType = file.getContentType() != null
-                ? file.getContentType() : "application/octet-stream";
+            String contentType = resolveContentType(file, safeName);
+
+            log.info("Uploading file to storage: path={} size={} contentType={}", storagePath, bytes.length, contentType);
 
             RequestBody body = RequestBody.create(bytes, MediaType.parse(contentType));
 
@@ -44,20 +49,36 @@ public class SupabaseStorageService {
                 .post(body)
                 .addHeader("Authorization", "Bearer " + appProperties.supabase().serviceRoleKey())
                 .addHeader("Content-Type", contentType)
+                .addHeader("x-upsert", "true")
                 .build();
 
             try (var response = httpClient.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
-                    throw new BusinessException("Erro ao fazer upload: " + response.code());
+                    String responseBody = response.body() != null ? response.body().string() : "(no body)";
+                    log.error("Storage upload failed: status={} body={} url={}", response.code(), responseBody, url);
+                    throw new BusinessException("Erro ao fazer upload: " + response.code() + " — " + responseBody);
                 }
             }
 
-            log.info("File uploaded to storage: {}", storagePath);
+            log.info("File uploaded successfully: {}", storagePath);
             return storagePath;
 
         } catch (IOException e) {
             throw new BusinessException("Falha ao enviar arquivo: " + e.getMessage());
         }
+    }
+
+    private String resolveContentType(MultipartFile file, String fileName) {
+        if (file.getContentType() != null && !file.getContentType().equals("application/octet-stream")) {
+            return file.getContentType();
+        }
+        String lower = fileName.toLowerCase();
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".png"))  return "image/png";
+        if (lower.endsWith(".gif"))  return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".pdf"))  return "application/pdf";
+        return file.getContentType() != null ? file.getContentType() : "application/octet-stream";
     }
 
     public void delete(String storagePath) {

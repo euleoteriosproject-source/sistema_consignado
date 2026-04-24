@@ -88,7 +88,7 @@ export default function ConfiguracoesPage() {
       qc.invalidateQueries({ queryKey: ["settings"] });
       toast.success("Logo enviado!");
     },
-    onError: () => toast.error("Erro ao enviar logo"),
+    onError: (e: Error) => toast.error("Erro ao enviar logo: " + e.message),
   });
 
   const { data: categories = [], isLoading: loadingCats } = useQuery({
