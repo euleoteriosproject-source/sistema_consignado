@@ -6,8 +6,10 @@ plugins {
     id("io.spring.dependency-management") version "1.1.6"
 }
 
-// Move build dir fora do OneDrive para evitar conflito de sync
-layout.buildDirectory.set(file("C:/tmp/consignado-backend-build"))
+// No Windows (dev local com OneDrive), move build dir para fora do OneDrive
+if (System.getProperty("os.name").lowercase().contains("windows")) {
+    layout.buildDirectory.set(file("C:/tmp/consignado-backend-build"))
+}
 
 group = "com.consignado"
 version = "0.0.1-SNAPSHOT"
