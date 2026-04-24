@@ -3,15 +3,17 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { consignmentsApi } from "@/lib/api/consignments";
+import { settingsApi } from "@/lib/api/settings";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, UserCog, ChevronLeft } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ConsignmentFormModal } from "@/components/consignments/ConsignmentFormModal";
+import { useAuthStore } from "@/stores/authStore";
 import type { PageResponse, ConsignmentSummary } from "@/types";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "outline" | "secondary" | "destructive" }> = {
@@ -23,17 +25,29 @@ const statusConfig: Record<string, { label: string; variant: "default" | "outlin
 
 export default function ConsignadosPage() {
   const router = useRouter();
+  const role = useAuthStore((s) => s.role);
+  const isOwner = role === "owner";
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
+
+  const { data: managers } = useQuery({
+    queryKey: ["managers"],
+    queryFn: settingsApi.managers,
+    enabled: isOwner,
+  });
 
   const params: Record<string, string> = { page: String(page), size: "20" };
   if (status !== "all") params.status = status;
+  if (selectedManagerId) params.managerId = selectedManagerId;
 
   const { data, isLoading } = useQuery<PageResponse<ConsignmentSummary>>({
     queryKey: ["consignments", params],
     queryFn: () => consignmentsApi.list(params),
   });
+
+  const selectedManager = managers?.find((m) => m.id === selectedManagerId);
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
@@ -48,8 +62,35 @@ export default function ConsignadosPage() {
         </Button>
       </div>
 
+      {/* Gestoras cards (owner only, no filter active) */}
+      {isOwner && !selectedManagerId && managers && managers.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {managers.filter(m => m.active).map((m) => (
+            <button
+              key={m.id}
+              onClick={() => { setSelectedManagerId(m.id); setPage(0); }}
+              className="text-left border rounded-lg p-4 hover:bg-muted/50 transition-colors flex items-center gap-3"
+            >
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <UserCog className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">{m.name}</p>
+                <p className="text-xs text-muted-foreground">Ver lotes desta gestora</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center gap-3 flex-wrap">
+          {selectedManagerId && (
+            <Button variant="ghost" size="sm" onClick={() => { setSelectedManagerId(null); setPage(0); }}>
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              {selectedManager?.name ?? "Gestora"}
+            </Button>
+          )}
           <Select value={status} onValueChange={(v) => { setStatus(v); setPage(0); }}>
             <SelectTrigger className="w-52">
               <SelectValue />

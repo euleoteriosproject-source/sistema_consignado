@@ -17,4 +17,6 @@ export const consignmentsApi = {
     apiFetch<Consignment>(`/api/v1/consignments/${id}/settle`, {
       method: "POST", body: JSON.stringify({ notes }),
     }),
+  revert: (id: string) =>
+    apiFetch<void>(`/api/v1/consignments/${id}`, { method: "DELETE" }),
 };

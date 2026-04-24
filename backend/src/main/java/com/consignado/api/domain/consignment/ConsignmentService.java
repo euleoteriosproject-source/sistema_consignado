@@ -489,6 +489,37 @@ public class ConsignmentService {
         );
     }
 
+    @Transactional
+    public void revert(UUID id) {
+        var tenantId = TenantContext.TENANT_ID.get();
+        var consignment = resolveConsignment(id, tenantId);
+
+        if (!"open".equals(consignment.getStatus())) {
+            throw new BusinessException(
+                "Apenas lotes com status 'Aberto' podem ser revertidos. Status atual: " + consignment.getStatus());
+        }
+
+        var items = itemRepository.findByConsignmentId(id);
+        for (var item : items) {
+            if (item.getQuantitySold() > 0 || item.getQuantityReturned() > 0 || item.getQuantityLost() > 0) {
+                throw new BusinessException(
+                    "Não é possível reverter: o lote já possui movimentações registradas.");
+            }
+        }
+
+        // Restaura o estoque de cada produto
+        for (var item : items) {
+            productRepository.findById(item.getProductId()).ifPresent(p -> {
+                p.setStockAvailable(p.getStockAvailable() + item.getQuantitySent());
+                productRepository.save(p);
+            });
+        }
+
+        itemRepository.deleteAll(items);
+        consignmentRepository.delete(consignment);
+        log.info("Consignment reverted id={} tenant={}", id, tenantId);
+    }
+
     private ConsignmentSummaryResponse toSummary(Consignment c, String resellerName, String managerName,
                                                   int totalItems, int totalSold, int totalReturned,
                                                   int totalLost, BigDecimal totalValue) {

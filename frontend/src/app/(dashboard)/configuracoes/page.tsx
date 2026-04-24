@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Building2, User, Tag, X, Plus, Image, Upload } from "lucide-react";
+import { Loader2, Save, Building2, User, Tag, X, Plus, Image, Upload, ImageOff } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/authStore";
@@ -197,31 +197,60 @@ export default function ConfiguracoesPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Logo</Label>
-                <div className="flex gap-3 items-center">
-                  {logoUrl && (
-                    <img src={logoUrl} alt="Logo" className="h-14 w-14 rounded object-contain border" />
-                  )}
-                  <div className="flex-1 space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <Button type="button" variant="outline" size="sm" asChild disabled={uploadLogo.isPending}>
-                        <span>
-                          {uploadLogo.isPending
-                            ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                            : <Upload className="h-4 w-4 mr-1" />}
-                          Subir imagem
-                        </span>
-                      </Button>
-                      <input
-                        type="file" accept="image/*" className="hidden"
-                        onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo.mutate(f); }}
+                <div className="flex gap-3 items-start">
+                  {/* Preview */}
+                  <div className="h-16 w-16 rounded border flex items-center justify-center bg-muted/30 shrink-0 overflow-hidden">
+                    {logoUrl ? (
+                      <img
+                        src={logoUrl}
+                        alt="Logo"
+                        className="h-full w-full object-contain"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                       />
-                    </label>
-                    <Input
-                      placeholder="ou cole a URL aqui..."
-                      value={logoUrl}
-                      onChange={(e) => setLogoUrl(e.target.value)}
-                      className="text-xs"
-                    />
+                    ) : (
+                      <Image className="h-6 w-6 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    {/* Filename or URL display */}
+                    {logoUrl && (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground truncate flex-1 max-w-xs">
+                          {logoUrl.split("/").pop() ?? logoUrl}
+                        </p>
+                        <Button
+                          type="button" variant="ghost" size="sm"
+                          className="text-destructive hover:text-destructive h-7 px-2"
+                          onClick={() => setLogoUrl("")}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <label className="cursor-pointer">
+                        <Button type="button" variant="outline" size="sm" asChild disabled={uploadLogo.isPending}>
+                          <span>
+                            {uploadLogo.isPending
+                              ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              : <Upload className="h-4 w-4 mr-1" />}
+                            {logoUrl ? "Trocar" : "Subir imagem"}
+                          </span>
+                        </Button>
+                        <input
+                          type="file" accept="image/*" className="hidden"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadLogo.mutate(f); }}
+                        />
+                      </label>
+                    </div>
+                    {!logoUrl && (
+                      <Input
+                        placeholder="ou cole a URL da imagem aqui..."
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        className="text-xs"
+                      />
+                    )}
                   </div>
                 </div>
               </div>

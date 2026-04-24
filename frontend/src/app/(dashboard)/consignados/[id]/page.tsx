@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { consignmentsApi } from "@/lib/api/consignments";
 import { settlementsApi } from "@/lib/api/settlements";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, TrendingUp, CheckCircle, Receipt, History, TrendingDown, RotateCcw, AlertTriangle, Clock, CircleDollarSign, AlertCircle, Package, Printer } from "lucide-react";
+import { ArrowLeft, TrendingUp, CheckCircle, Receipt, History, TrendingDown, RotateCcw, AlertTriangle, Clock, CircleDollarSign, AlertCircle, Package, Printer, Undo2 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { MovementModal } from "@/components/consignments/MovementModal";
 import { PostMovementSettlementDialog } from "@/components/consignments/PostMovementSettlementDialog";
@@ -242,6 +242,7 @@ function TimelineNode({
 export default function ConsignmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [movementOpen, setMovementOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [extratoOpen, setExtratoOpen] = useState(false);
@@ -256,6 +257,16 @@ export default function ConsignmentDetailPage() {
   const historyItem = historyItemId
     ? (consignment?.items.find((i) => i.id === historyItemId) ?? null)
     : null;
+
+  const revertMutation = useMutation({
+    mutationFn: () => consignmentsApi.revert(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["consignments"] });
+      toast.success("Lote revertido e estoque restaurado.");
+      router.replace("/consignados");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data: settlementsPage } = useQuery<PageResponse<Settlement>>({
     queryKey: ["consignment-settlements", id, consignment?.resellerId],
@@ -327,6 +338,20 @@ export default function ConsignmentDetailPage() {
           <Button variant="outline" size="sm" onClick={() => setExtratoOpen(true)}>
             <Printer className="h-4 w-4 mr-1" /> Extrato
           </Button>
+          {consignment.status === "open" && (
+            <Button
+              variant="outline" size="sm"
+              className="text-destructive border-destructive hover:bg-destructive/10"
+              disabled={revertMutation.isPending}
+              onClick={() => {
+                if (confirm("Reverter este lote? Todo o estoque será restaurado e o lote removido. Esta ação não pode ser desfeita.")) {
+                  revertMutation.mutate();
+                }
+              }}
+            >
+              <Undo2 className="h-4 w-4 mr-1" /> Reverter lote
+            </Button>
+          )}
           {isOpen && (
             <>
               <Button variant="outline" size="sm" onClick={() => setMovementOpen(true)}>

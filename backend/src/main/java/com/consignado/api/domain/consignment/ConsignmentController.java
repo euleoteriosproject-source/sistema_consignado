@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -76,5 +77,11 @@ public class ConsignmentController {
         @RequestBody(required = false) SettleRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.ok(consignmentService.settle(id, request)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> revert(@PathVariable UUID id) {
+        consignmentService.revert(id);
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }
