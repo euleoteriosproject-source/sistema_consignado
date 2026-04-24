@@ -22,6 +22,7 @@ interface Props { open: boolean; onClose: () => void; onCreated?: (id: string) =
 export function ConsignmentFormModal({ open, onClose, onCreated }: Props) {
   const queryClient = useQueryClient();
   const role = useAuthStore((s) => s.role);
+  const userName = useAuthStore((s) => s.userName);
   const isOwner = role === "owner";
   const [mode, setMode] = useState<"reseller" | "manager_stock">("reseller");
   const [selectedManagerId, setSelectedManagerId] = useState("");
@@ -75,7 +76,14 @@ export function ConsignmentFormModal({ open, onClose, onCreated }: Props) {
         consignmentType: mode,
         deliveredAt,
         expectedReturnAt: expectedReturnAt || undefined,
-        notes: notes || undefined,
+        notes: (() => {
+          // Quando dono cria lote para revendedora via gestora, registra quem criou
+          const autoNote = isOwner && mode === "reseller" && effectiveManagerId
+            ? `Criado pelo dono (${userName ?? "Dono"})`
+            : null;
+          const combined = [autoNote, notes || null].filter(Boolean).join(" — ");
+          return combined || undefined;
+        })(),
         items: items.filter((i) => i.productId && i.quantitySent > 0),
       }),
     onSuccess: (created) => {

@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { consignmentsApi } from "@/lib/api/consignments";
 import { settingsApi } from "@/lib/api/settings";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, UserCog, ChevronLeft, Package } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ConsignmentFormModal } from "@/components/consignments/ConsignmentFormModal";
@@ -25,16 +25,21 @@ const statusConfig: Record<string, { label: string; variant: "default" | "outlin
   overdue: { label: "Atrasado", variant: "destructive" },
 };
 
-export default function ConsignadosPage() {
+function ConsignadosPageInner() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const role = useAuthStore((s) => s.role);
   const userName = useAuthStore((s) => s.userName);
   const isOwner = role === "owner";
+
+  // Filtro de gestora persiste na URL (?gestora=ID) para o botão Voltar funcionar
+  const selectedManagerId = searchParams.get("gestora");
+
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [extratoId, setExtratoId] = useState<string | null>(null);
-  const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   const [managerTab, setManagerTab] = useState<"reseller" | "manager_stock">("reseller");
 
   const { data: managers } = useQuery({
@@ -43,14 +48,11 @@ export default function ConsignadosPage() {
     enabled: isOwner,
   });
 
-  // Owner sem gestora selecionada: só os próprios lotes (ownOnly)
-  // Owner com gestora selecionada: filtra pela gestora
-  // Manager: filtra por tipo conforme tab
   const params: Record<string, string | undefined> = { page: String(page), size: "20" };
   if (status !== "all") params.status = status;
   if (isOwner && selectedManagerId) {
     params.managerId = selectedManagerId;
-    params.consignmentType = "reseller"; // view da gestora: só lotes dela com revendedoras
+    params.consignmentType = "reseller";
   }
   if (isOwner && !selectedManagerId) params.ownOnly = "true";
   if (!isOwner) params.consignmentType = managerTab;
@@ -61,6 +63,16 @@ export default function ConsignadosPage() {
   });
 
   const selectedManager = managers?.find((m) => m.id === selectedManagerId);
+
+  function selectGestora(id: string) {
+    setPage(0);
+    router.push(`${pathname}?gestora=${id}`);
+  }
+
+  function clearGestora() {
+    setPage(0);
+    router.push(pathname);
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
@@ -95,7 +107,7 @@ export default function ConsignadosPage() {
           {managers.filter(m => m.active).map((m) => (
             <button
               key={m.id}
-              onClick={() => { setSelectedManagerId(m.id); setPage(0); }}
+              onClick={() => selectGestora(m.id)}
               className="text-left border rounded-lg p-4 hover:bg-muted/50 transition-colors flex items-center gap-3"
             >
               <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -113,7 +125,7 @@ export default function ConsignadosPage() {
       <Card>
         <CardHeader className="flex flex-row items-center gap-3 flex-wrap">
           {selectedManagerId && (
-            <Button variant="ghost" size="sm" onClick={() => { setSelectedManagerId(null); setPage(0); }}>
+            <Button variant="ghost" size="sm" onClick={clearGestora}>
               <ChevronLeft className="h-4 w-4 mr-1" />
               {selectedManager?.name ?? "Gestora"}
             </Button>
@@ -137,7 +149,7 @@ export default function ConsignadosPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Revendedora</TableHead>
-                <TableHead>Gestor(a)</TableHead>
+                <TableHead>Responsável</TableHead>
                 <TableHead>Entrega</TableHead>
                 <TableHead>Retorno Prev.</TableHead>
                 <TableHead className="text-right">Itens totais</TableHead>
@@ -166,7 +178,7 @@ export default function ConsignadosPage() {
                         <TableCell className="font-medium">{c.resellerName}</TableCell>
                         <TableCell>
                           {c.consignmentType === "manager_stock"
-                            ? <span>{userName ?? "Dono"} <span className="text-xs text-muted-foreground">(criou)</span></span>
+                            ? (userName ?? "Dono")
                             : c.managerName}
                         </TableCell>
                         <TableCell>{formatDate(c.deliveredAt)}</TableCell>
@@ -221,5 +233,13 @@ export default function ConsignadosPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ConsignadosPage() {
+  return (
+    <Suspense>
+      <ConsignadosPageInner />
+    </Suspense>
   );
 }
