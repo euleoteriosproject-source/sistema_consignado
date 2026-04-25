@@ -61,13 +61,13 @@ public class DashboardService {
             : consignmentRepository.findOwnerCirculation(tenantId, userId, activeStatuses);
 
         long openCount = isManager
-            ? consignmentRepository.countByManagerIdAndStatus(userId, "open")
-                + consignmentRepository.countByManagerIdAndStatus(userId, "partially_settled")
+            ? consignmentRepository.countByManagerIdAndConsignmentTypeAndStatus(userId, "reseller", "open")
+                + consignmentRepository.countByManagerIdAndConsignmentTypeAndStatus(userId, "reseller", "partially_settled")
             : consignmentRepository.countOwnerCirculation(tenantId, userId, "open")
                 + consignmentRepository.countOwnerCirculation(tenantId, userId, "partially_settled");
 
         long overdueCount = isManager
-            ? consignmentRepository.countByManagerIdAndStatus(userId, "overdue")
+            ? consignmentRepository.countByManagerIdAndConsignmentTypeAndStatus(userId, "reseller", "overdue")
             : consignmentRepository.countOwnerCirculation(tenantId, userId, "overdue");
 
         var activeIds = activeConsignments.stream().map(Consignment::getId).toList();

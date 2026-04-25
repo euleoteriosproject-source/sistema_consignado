@@ -52,6 +52,8 @@ public interface ConsignmentRepository extends JpaRepository<Consignment, UUID>,
 
     long countByManagerIdAndStatus(UUID managerId, String status);
 
+    long countByManagerIdAndConsignmentTypeAndStatus(UUID managerId, String consignmentType, String status);
+
     @Query("SELECT c FROM Consignment c WHERE c.tenantId = :tenantId " +
            "AND c.status IN ('open','partially_settled') " +
            "AND c.expectedReturnAt = :today")
