@@ -75,11 +75,6 @@ export function DatePicker({
           initialFocus
           classNames={{
             caption_label: "hidden",
-            caption: "flex items-center justify-between gap-2 px-1 pt-1 pb-0",
-            nav: "flex items-center gap-1",
-            nav_button_previous: "static",
-            nav_button_next: "static",
-            dropdowns: "flex gap-1 items-center flex-1 justify-center",
           }}
         />
       </PopoverContent>

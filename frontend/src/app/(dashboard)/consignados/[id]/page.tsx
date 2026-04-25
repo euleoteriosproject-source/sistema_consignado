@@ -16,6 +16,7 @@ import { MovementModal } from "@/components/consignments/MovementModal";
 import { PostMovementSettlementDialog } from "@/components/consignments/PostMovementSettlementDialog";
 import { CloseConsignmentModal } from "@/components/consignments/CloseConsignmentModal";
 import { ExtratoModal } from "@/components/consignments/ExtratoModal";
+import { SettlementReceiptModal } from "@/components/settlements/SettlementReceiptModal";
 import type { SettlementOfferData } from "@/components/consignments/MovementModal";
 import type { Consignment, ConsignmentItem, PageResponse, Settlement } from "@/types";
 
@@ -247,6 +248,7 @@ export default function ConsignmentDetailPage() {
   const [extratoOpen, setExtratoOpen] = useState(false);
   const [settlementOffer, setSettlementOffer] = useState<SettlementOfferData | null>(null);
   const [historyItemId, setHistoryItemId] = useState<string | null>(null);
+  const [receiptSettlement, setReceiptSettlement] = useState<Settlement | null>(null);
 
   const { data: consignment, isLoading } = useQuery<Consignment>({
     queryKey: ["consignment", id],
@@ -405,7 +407,6 @@ export default function ConsignmentDetailPage() {
                 {pendingGross > 0.01 && (
                   <span className="text-amber-700 dark:text-amber-400 font-medium">
                     Falta acertar: <strong>{formatCurrency(pendingGross)}</strong>
-                    {" "}(líq. est. {formatCurrency(pendingNet)})
                   </span>
                 )}
               </div>
@@ -518,17 +519,26 @@ export default function ConsignmentDetailPage() {
                   <TableHead className="text-right">Líquido</TableHead>
                   <TableHead>Pagamento</TableHead>
                   <TableHead>Obs.</TableHead>
+                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {relatedSettlements.map((s) => (
-                  <TableRow key={s.id}>
+                  <TableRow
+                    key={s.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setReceiptSettlement(s)}
+                    title="Clique para ver comprovante"
+                  >
                     <TableCell>{formatDate(s.settlementDate)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(s.totalSoldValue)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(s.totalCommission)}</TableCell>
                     <TableCell className="text-right font-medium text-green-600">{formatCurrency(s.netToReceive)}</TableCell>
                     <TableCell><Badge variant="outline">{paymentLabel[s.paymentMethod] ?? s.paymentMethod}</Badge></TableCell>
                     <TableCell className="text-muted-foreground text-sm">{s.notes ?? "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <Printer className="h-3.5 w-3.5 text-muted-foreground" />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -577,7 +587,19 @@ export default function ConsignmentDetailPage() {
       )}
 
       {extratoOpen && (
-        <ExtratoModal consignmentId={id} onClose={() => setExtratoOpen(false)} />
+        <ExtratoModal
+          consignmentId={id}
+          onClose={() => setExtratoOpen(false)}
+          settlements={relatedSettlements}
+        />
+      )}
+
+      {receiptSettlement && consignment && (
+        <SettlementReceiptModal
+          settlement={receiptSettlement}
+          consignment={consignment}
+          onClose={() => setReceiptSettlement(null)}
+        />
       )}
     </div>
   );

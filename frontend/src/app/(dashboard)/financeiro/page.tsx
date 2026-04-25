@@ -355,16 +355,18 @@ export default function FinanceiroPage() {
               <p className="text-xs text-muted-foreground mt-1">{openLots.length} lotes abertos</p>
             </CardContent>
           </Card>
-          <Card className="border-amber-200 dark:border-amber-800">
-            <CardHeader className="pb-1 flex flex-row items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
-              <CardTitle className="text-sm font-medium text-muted-foreground">A Receber</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-amber-600">{formatCurrency(summary.totalPendingReceivable ?? 0)}</p>
-              <p className="text-xs text-muted-foreground mt-1">líquido pendente de acerto</p>
-            </CardContent>
-          </Card>
+          {!isOwner && (
+            <Card className="border-amber-200 dark:border-amber-800">
+              <CardHeader className="pb-1 flex flex-row items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <CardTitle className="text-sm font-medium text-muted-foreground">A Receber</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-amber-600">{formatCurrency(summary.totalPendingReceivable ?? 0)}</p>
+                <p className="text-xs text-muted-foreground mt-1">líquido pendente de acerto</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 

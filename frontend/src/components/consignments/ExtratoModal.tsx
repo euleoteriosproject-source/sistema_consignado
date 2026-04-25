@@ -26,9 +26,9 @@ const paymentLabel: Record<string, string> = {
   pix: "PIX", cash: "Dinheiro", transfer: "Transferência", other: "Outro",
 };
 
-interface Props { consignmentId: string; onClose: () => void }
+interface Props { consignmentId: string; onClose: () => void; settlements?: Settlement[] }
 
-export function ExtratoModal({ consignmentId, onClose }: Props) {
+export function ExtratoModal({ consignmentId, onClose, settlements: settlementsProp }: Props) {
   const { data: c, isLoading: loadingC } = useQuery<Consignment>({
     queryKey: ["consignment", consignmentId],
     queryFn: () => consignmentsApi.get(consignmentId),
@@ -40,11 +40,10 @@ export function ExtratoModal({ consignmentId, onClose }: Props) {
   const { data: settlementsPage } = useQuery({
     queryKey: ["settlements-for-extrato", consignmentId, c?.resellerId],
     queryFn: () => settlementsApi.list(c!.resellerId ? { resellerId: c!.resellerId, size: "50" } : { size: "50" }),
-    enabled: !!c?.resellerId,
+    enabled: !settlementsProp && !!c?.resellerId,
   });
-  const settlements: Settlement[] = (settlementsPage?.content ?? []).filter(
-    (st: Settlement) => st.consignmentId === consignmentId
-  );
+  const settlements: Settlement[] = settlementsProp
+    ?? (settlementsPage?.content ?? []).filter((st: Settlement) => st.consignmentId === consignmentId);
 
   const totalPecas = c?.items.reduce((a, i) => a + i.quantitySent, 0) ?? 0;
   const totalValor = c?.items.reduce((a, i) => a + i.quantitySent * i.salePrice, 0) ?? 0;
