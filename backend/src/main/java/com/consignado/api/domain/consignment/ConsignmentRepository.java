@@ -20,6 +20,23 @@ public interface ConsignmentRepository extends JpaRepository<Consignment, UUID>,
 
     List<Consignment> findByTenantIdAndStatusIn(UUID tenantId, List<String> statuses);
 
+    // Para o dono: manager_stock (todos) + reseller onde ele é o responsável direto
+    @Query("SELECT c FROM Consignment c WHERE c.tenantId = :tenantId " +
+           "AND c.status IN :statuses " +
+           "AND (c.consignmentType = 'manager_stock' OR (c.consignmentType = 'reseller' AND c.managerId = :ownerId))")
+    List<Consignment> findOwnerCirculation(
+        @Param("tenantId") UUID tenantId,
+        @Param("ownerId") UUID ownerId,
+        @Param("statuses") List<String> statuses);
+
+    @Query("SELECT COUNT(c) FROM Consignment c WHERE c.tenantId = :tenantId " +
+           "AND c.status = :status " +
+           "AND (c.consignmentType = 'manager_stock' OR (c.consignmentType = 'reseller' AND c.managerId = :ownerId))")
+    long countOwnerCirculation(
+        @Param("tenantId") UUID tenantId,
+        @Param("ownerId") UUID ownerId,
+        @Param("status") String status);
+
     // Filtra por tipo de consignment — evita dupla contagem (manager_stock + reseller)
     List<Consignment> findByTenantIdAndConsignmentTypeAndStatusIn(UUID tenantId, String consignmentType, List<String> statuses);
 

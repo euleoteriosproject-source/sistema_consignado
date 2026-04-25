@@ -27,10 +27,10 @@ public class DashboardController {
 
     @GetMapping("/summary")
     public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getSummary() {
-        var tenantId = TenantContext.TENANT_ID.get();
-        var role = TenantContext.ROLE.get();
-        var managerId = "manager".equalsIgnoreCase(role) ? TenantContext.USER_ID.get() : null;
-        return ResponseEntity.ok(ApiResponse.ok(dashboardService.getSummary(tenantId, managerId)));
+        var tenantId  = TenantContext.TENANT_ID.get();
+        var userId    = TenantContext.USER_ID.get();
+        var isManager = "manager".equalsIgnoreCase(TenantContext.ROLE.get());
+        return ResponseEntity.ok(ApiResponse.ok(dashboardService.getSummary(tenantId, userId, isManager)));
     }
 
     @GetMapping("/tree")

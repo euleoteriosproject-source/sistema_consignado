@@ -41,35 +41,35 @@ public class DashboardService {
     private final ResellerRepository resellerRepository;
     private final UserRepository userRepository;
 
-    @Cacheable(value = "dashboard-summary-v2", key = "#tenantId.toString() + ':' + (#managerId != null ? #managerId.toString() : 'owner')")
+    @Cacheable(value = "dashboard-summary-v2", key = "#tenantId.toString() + ':' + #userId.toString()")
     @Transactional(readOnly = true)
-    public DashboardSummaryResponse getSummary(UUID tenantId, UUID managerId) {
-        boolean isManager = managerId != null;
-        log.info("Computing dashboard summary for tenant={} manager={}", tenantId, managerId);
+    public DashboardSummaryResponse getSummary(UUID tenantId, UUID userId, boolean isManager) {
+        log.info("Computing dashboard summary for tenant={} user={} isManager={}", tenantId, userId, isManager);
 
         long activeResellers = isManager
-            ? resellerRepository.countByManagerIdAndStatusAndDeletedAtIsNull(managerId, "active")
+            ? resellerRepository.countByManagerIdAndStatusAndDeletedAtIsNull(userId, "active")
             : resellerRepository.countByTenantIdAndStatusAndDeletedAtIsNull(tenantId, "active");
-
-        // Contagem de lotes abertos: apenas reseller (exclui manager_stock para não duplicar)
-        long openCount = isManager
-            ? consignmentRepository.countByManagerIdAndStatus(managerId, "open")
-                + consignmentRepository.countByManagerIdAndStatus(managerId, "partially_settled")
-            : consignmentRepository.countByTenantIdAndConsignmentTypeAndStatus(tenantId, "reseller", "open")
-                + consignmentRepository.countByTenantIdAndConsignmentTypeAndStatus(tenantId, "reseller", "partially_settled");
-
-        long overdueCount = isManager
-            ? consignmentRepository.countByManagerIdAndStatus(managerId, "overdue")
-            : consignmentRepository.countByTenantIdAndConsignmentTypeAndStatus(tenantId, "reseller", "overdue");
 
         var activeStatuses = List.of("open", "partially_settled", "overdue");
 
-        // Valor em circulação: APENAS lotes reseller para evitar dupla contagem.
-        // Lotes manager_stock representam estoque do gestor — as mesmas peças
-        // aparecem novamente nos lotes reseller quando o gestor distribui para revendedores.
+        // Regra de circulação:
+        //   Gestor  → apenas seus lotes reseller (o que distribuiu para revendedores)
+        //   Dono    → manager_stock (deu para gestores) + reseller onde ele é responsável direto
+        //             NÃO inclui reseller de gestores (essas peças já estão no manager_stock)
         var activeConsignments = isManager
-            ? consignmentRepository.findByManagerIdAndConsignmentTypeAndStatusIn(managerId, "reseller", activeStatuses)
-            : consignmentRepository.findByTenantIdAndConsignmentTypeAndStatusIn(tenantId, "reseller", activeStatuses);
+            ? consignmentRepository.findByManagerIdAndConsignmentTypeAndStatusIn(userId, "reseller", activeStatuses)
+            : consignmentRepository.findOwnerCirculation(tenantId, userId, activeStatuses);
+
+        long openCount = isManager
+            ? consignmentRepository.countByManagerIdAndStatus(userId, "open")
+                + consignmentRepository.countByManagerIdAndStatus(userId, "partially_settled")
+            : consignmentRepository.countOwnerCirculation(tenantId, userId, "open")
+                + consignmentRepository.countOwnerCirculation(tenantId, userId, "partially_settled");
+
+        long overdueCount = isManager
+            ? consignmentRepository.countByManagerIdAndStatus(userId, "overdue")
+            : consignmentRepository.countOwnerCirculation(tenantId, userId, "overdue");
+
         var activeIds = activeConsignments.stream().map(Consignment::getId).toList();
 
         var totalOpenValue = BigDecimal.ZERO;
@@ -92,7 +92,7 @@ public class DashboardService {
         var allSettlements = settlementRepository
             .findByTenantIdAndSettlementDateBetween(tenantId, now.withDayOfMonth(1), now);
         var filteredSettlements = isManager
-            ? allSettlements.stream().filter(s -> managerId.equals(s.getManagerId())).toList()
+            ? allSettlements.stream().filter(s -> userId.equals(s.getManagerId())).toList()
             : allSettlements;
         var totalSettledThisMonth = filteredSettlements.stream()
             .map(Settlement::getNetToReceive)
