@@ -18,6 +18,8 @@ export interface AdminTicket {
   description: string;
   priority: string;
   status: string;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
   adminResponse: string | null;
   respondedAt: string | null;
   createdAt: string;

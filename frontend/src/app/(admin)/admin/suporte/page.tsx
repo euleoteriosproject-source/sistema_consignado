@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LifeBuoy, CheckCircle, Clock, AlertCircle, MessageSquare, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { LifeBuoy, CheckCircle, Clock, AlertCircle, MessageSquare, ChevronDown, ChevronUp, Loader2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 
@@ -145,6 +145,20 @@ function TicketRow({ ticket }: { ticket: AdminTicket }) {
               <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Mensagem do cliente</p>
               <p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
             </div>
+            {ticket.attachmentUrl && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Anexo</p>
+                <a
+                  href={ticket.attachmentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  <Paperclip className="h-3.5 w-3.5" />
+                  {ticket.attachmentName ?? "Ver anexo"}
+                </a>
+              </div>
+            )}
             {ticket.adminResponse && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
                 <p className="text-xs font-medium text-primary uppercase mb-1">Sua resposta</p>

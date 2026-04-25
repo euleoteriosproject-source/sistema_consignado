@@ -10,6 +10,8 @@ public record AdminTicketResponse(
     String description,
     String priority,
     String status,
+    String attachmentUrl,
+    String attachmentName,
     String adminResponse,
     OffsetDateTime respondedAt,
     OffsetDateTime createdAt,

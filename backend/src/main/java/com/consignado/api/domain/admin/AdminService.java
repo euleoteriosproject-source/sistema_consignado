@@ -109,6 +109,7 @@ public class AdminService {
         return new AdminTicketResponse(
             t.getId(), tenantName, t.getSubject(), t.getDescription(),
             t.getPriority(), t.getStatus(),
+            t.getAttachmentUrl(), t.getAttachmentName(),
             t.getAdminResponse(), t.getRespondedAt(),
             t.getCreatedAt(), t.getUpdatedAt()
         );
