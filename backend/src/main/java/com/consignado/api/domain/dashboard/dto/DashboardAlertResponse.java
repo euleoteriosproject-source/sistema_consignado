@@ -7,6 +7,8 @@ public record DashboardAlertResponse(
     UUID consignmentId,
     UUID resellerId,
     String resellerName,
+    String managerName,
     LocalDate expectedReturnAt,
-    int daysOverdue
+    int daysOverdue,
+    String alertType   // "overdue" | "due_today"
 ) {}

@@ -132,36 +132,69 @@ public class DashboardService {
 
     @Transactional(readOnly = true)
     public List<DashboardAlertResponse> getAlerts(UUID tenantId) {
-        var role = TenantContext.ROLE.get();
+        var role   = TenantContext.ROLE.get();
         var userId = TenantContext.USER_ID.get();
+        var today  = LocalDate.now();
 
-        var overdueConsignments = consignmentRepository
-            .findByTenantIdAndStatusIn(tenantId, List.of("overdue"));
+        // Já atrasados
+        var overdue = consignmentRepository.findByTenantIdAndStatusIn(tenantId, List.of("overdue"));
+        // Vencem hoje (ainda abertos)
+        var dueToday = consignmentRepository.findDueTodayActive(tenantId, today);
 
         if ("manager".equalsIgnoreCase(role)) {
-            overdueConsignments = overdueConsignments.stream()
-                .filter(c -> c.getManagerId().equals(userId)).toList();
+            overdue   = overdue.stream().filter(c -> userId.equals(c.getManagerId())).toList();
+            dueToday  = dueToday.stream().filter(c -> userId.equals(c.getManagerId())).toList();
         }
 
-        var resellerIds = overdueConsignments.stream()
-            .map(Consignment::getResellerId).collect(Collectors.toSet());
+        // Carrega nomes de revendedores e gestores em batch
+        var allConsignments = new java.util.ArrayList<Consignment>(overdue);
+        allConsignments.addAll(dueToday);
+
+        var resellerIds = allConsignments.stream()
+            .map(Consignment::getResellerId)
+            .filter(java.util.Objects::nonNull)
+            .collect(Collectors.toSet());
+        var managerIds = allConsignments.stream()
+            .map(Consignment::getManagerId)
+            .collect(Collectors.toSet());
+
         Map<UUID, String> resellerNames = resellerRepository.findAllById(resellerIds).stream()
             .collect(Collectors.toMap(Reseller::getId, Reseller::getName));
+        Map<UUID, String> managerNames = userRepository.findAllById(managerIds).stream()
+            .collect(Collectors.toMap(com.consignado.api.domain.user.User::getId,
+                                      com.consignado.api.domain.user.User::getName));
 
-        var today = LocalDate.now();
-        return overdueConsignments.stream().map(c -> new DashboardAlertResponse(
+        var alerts = new java.util.ArrayList<DashboardAlertResponse>();
+
+        overdue.forEach(c -> alerts.add(new DashboardAlertResponse(
             c.getId(), c.getResellerId(),
-            resellerNames.getOrDefault(c.getResellerId(), ""),
+            c.getResellerId() != null ? resellerNames.getOrDefault(c.getResellerId(), "") : managerNames.getOrDefault(c.getManagerId(), ""),
+            managerNames.getOrDefault(c.getManagerId(), ""),
             c.getExpectedReturnAt(),
-            c.getExpectedReturnAt() != null
-                ? (int) ChronoUnit.DAYS.between(c.getExpectedReturnAt(), today)
-                : 0
-        )).toList();
+            c.getExpectedReturnAt() != null ? (int) ChronoUnit.DAYS.between(c.getExpectedReturnAt(), today) : 0,
+            "overdue"
+        )));
+
+        dueToday.forEach(c -> alerts.add(new DashboardAlertResponse(
+            c.getId(), c.getResellerId(),
+            c.getResellerId() != null ? resellerNames.getOrDefault(c.getResellerId(), "") : managerNames.getOrDefault(c.getManagerId(), ""),
+            managerNames.getOrDefault(c.getManagerId(), ""),
+            c.getExpectedReturnAt(),
+            0,
+            "due_today"
+        )));
+
+        // Ordena: atrasados primeiro (mais dias de atraso primeiro), depois vencem hoje
+        alerts.sort(java.util.Comparator
+            .comparing(DashboardAlertResponse::alertType)
+            .thenComparing(a -> -a.daysOverdue()));
+
+        return alerts;
     }
 
-    @Cacheable(value = "dashboard-charts-v2", key = "#tenantId.toString() + ':' + #period")
+    @Cacheable(value = "dashboard-charts-v2", key = "#tenantId.toString() + ':' + #userId.toString() + ':' + #period")
     @Transactional(readOnly = true)
-    public DashboardChartResponse getCharts(UUID tenantId, String period) {
+    public DashboardChartResponse getCharts(UUID tenantId, UUID userId, boolean isManager, String period) {
         var now = LocalDate.now();
         var from = switch (period != null ? period : "6m") {
             case "1m" -> now.minusMonths(1);
@@ -169,7 +202,9 @@ public class DashboardService {
             default   -> now.minusMonths(6);
         };
 
-        var settlements = settlementRepository.findByTenantIdAndSettlementDateBetween(tenantId, from, now);
+        var settlements = isManager
+            ? settlementRepository.findByManagerIdAndSettlementDateBetween(userId, from, now)
+            : settlementRepository.findByTenantIdAndSettlementDateBetween(tenantId, from, now);
 
         Map<String, List<Settlement>> byMonth = settlements.stream()
             .collect(Collectors.groupingBy(s ->

@@ -39,7 +39,7 @@ export function ExtratoModal({ consignmentId, onClose }: Props) {
   });
   const { data: settlementsPage } = useQuery({
     queryKey: ["settlements-for-extrato", consignmentId, c?.resellerId],
-    queryFn: () => settlementsApi.list({ resellerId: c!.resellerId, size: "50" }),
+    queryFn: () => settlementsApi.list(c!.resellerId ? { resellerId: c!.resellerId, size: "50" } : { size: "50" }),
     enabled: !!c?.resellerId,
   });
   const settlements: Settlement[] = (settlementsPage?.content ?? []).filter(

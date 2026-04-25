@@ -1,5 +1,6 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { dashboardApi } from "@/lib/api/dashboard";
 import { useAuthStore } from "@/stores/authStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,10 +10,11 @@ import { formatCurrency } from "@/lib/utils";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { Users, ShoppingBag, DollarSign, AlertTriangle } from "lucide-react";
+import { Users, ShoppingBag, DollarSign, AlertTriangle, Clock } from "lucide-react";
 import type { DashboardSummary, DashboardAlert, DashboardChartData } from "@/types";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const role = useAuthStore((s) => s.role);
   const isOwner = role === "owner";
 
@@ -41,7 +43,7 @@ export default function DashboardPage() {
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        {!isOwner && <p className="text-sm text-muted-foreground">Visão dos seus revendedores(as)</p>}
+        {!isOwner && <p className="text-sm text-muted-foreground">Visão da sua equipe</p>}
       </div>
 
       <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
@@ -102,15 +104,35 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Alertas</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-1">
             {alerts.map((alert) => (
-              <div key={`${alert.type}-${alert.resellerId}`} className="flex items-center justify-between py-2 border-b last:border-0">
-                <div>
-                  <p className="text-sm font-medium">{alert.resellerName}</p>
-                  <p className="text-xs text-muted-foreground">{alert.message}</p>
+              <div
+                key={`${alert.alertType}-${alert.consignmentId}`}
+                className="flex items-center justify-between py-2 border-b last:border-0 cursor-pointer hover:bg-muted/50 rounded px-2 -mx-2 transition-colors"
+                onClick={() => router.push(`/consignados/${alert.consignmentId}`)}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  {alert.alertType === "overdue" ? (
+                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-yellow-500 shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{alert.resellerName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {isOwner
+                        ? `Gestor(a): ${alert.managerName}`
+                        : alert.expectedReturnAt
+                          ? `Previsão: ${new Date(alert.expectedReturnAt + "T00:00:00").toLocaleDateString("pt-BR")}`
+                          : "Sem data prevista"
+                      }
+                    </p>
+                  </div>
                 </div>
-                <Badge variant={alert.type === "overdue" ? "destructive" : "warning"}>
-                  {alert.type === "overdue" ? "Atrasado" : "Atenção"}
+                <Badge variant={alert.alertType === "overdue" ? "destructive" : "warning"} className="shrink-0 ml-2">
+                  {alert.alertType === "overdue"
+                    ? `${alert.daysOverdue}d atrasado`
+                    : "Vence hoje"}
                 </Badge>
               </div>
             ))}

@@ -11,7 +11,7 @@ import { useAuthStore } from "@/stores/authStore";
 const ownerNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/gestores", label: "Gestores", icon: UserCog },
-  { href: "/revendedoras", label: "Revendedoras", icon: Users },
+  { href: "/revendedores", label: "Revendedores", icon: Users },
   { href: "/produtos", label: "Produtos", icon: Package },
   { href: "/consignados", label: "Consignados", icon: ShoppingBag },
   { href: "/financeiro", label: "Financeiro", icon: DollarSign },
@@ -22,7 +22,7 @@ const ownerNav = [
 
 const managerNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/revendedoras", label: "Revendedores(as)", icon: Users },
+  { href: "/revendedores", label: "Revendedores", icon: Users },
   { href: "/produtos", label: "Produtos", icon: Package },
   { href: "/consignados", label: "Consignados", icon: ShoppingBag },
   { href: "/financeiro", label: "Financeiro", icon: DollarSign },

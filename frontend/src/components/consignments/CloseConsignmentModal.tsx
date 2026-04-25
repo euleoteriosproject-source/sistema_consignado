@@ -16,7 +16,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   consignmentId: string;
-  resellerId: string;
+  resellerId?: string;
   items: ConsignmentItem[];
   alreadySettledGross?: number;
   onSettled: () => void;

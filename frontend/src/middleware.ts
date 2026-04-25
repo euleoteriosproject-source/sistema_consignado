@@ -32,6 +32,7 @@ export async function middleware(request: NextRequest) {
     !request.nextUrl.pathname.startsWith("/login/esqueceu-senha");
   const isDashboard = request.nextUrl.pathname.startsWith("/dashboard") ||
     request.nextUrl.pathname.startsWith("/revendedoras") ||
+    request.nextUrl.pathname.startsWith("/revendedores") ||
     request.nextUrl.pathname.startsWith("/produtos") ||
     request.nextUrl.pathname.startsWith("/consignados") ||
     request.nextUrl.pathname.startsWith("/financeiro") ||

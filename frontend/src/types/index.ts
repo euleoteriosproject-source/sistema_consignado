@@ -217,12 +217,12 @@ export interface DashboardSummary {
 }
 
 export interface DashboardAlert {
-  type: "overdue" | "pending_return";
+  alertType: "overdue" | "due_today";
   consignmentId: string;
-  resellerId: string;
+  resellerId: string | null;
   resellerName: string;
-  message: string;
-  expectedReturnAt: string;
+  managerName: string;
+  expectedReturnAt: string | null;
   daysOverdue: number;
 }
 

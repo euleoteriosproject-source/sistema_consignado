@@ -217,7 +217,7 @@ function ConsignmentsReport({ downloading, onDownload }: { downloading: string |
     const seen = new Set<string>();
     const result: { id: string; name: string }[] = [];
     for (const c of all) {
-      if (!seen.has(c.resellerId)) {
+      if (c.resellerId && !seen.has(c.resellerId)) {
         seen.add(c.resellerId);
         result.push({ id: c.resellerId, name: c.resellerName });
       }

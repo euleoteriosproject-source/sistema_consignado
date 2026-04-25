@@ -14,6 +14,8 @@ public interface SettlementRepository extends JpaRepository<Settlement, UUID>, J
 
     List<Settlement> findByTenantIdAndSettlementDateBetween(UUID tenantId, LocalDate from, LocalDate to);
 
+    List<Settlement> findByManagerIdAndSettlementDateBetween(UUID managerId, LocalDate from, LocalDate to);
+
     Optional<Settlement> findFirstByResellerIdAndTenantIdOrderBySettlementDateDesc(UUID resellerId, UUID tenantId);
 
     @org.springframework.data.jpa.repository.Query(

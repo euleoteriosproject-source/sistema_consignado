@@ -261,7 +261,7 @@ export default function ConsignmentDetailPage() {
 
   const { data: settlementsPage } = useQuery<PageResponse<Settlement>>({
     queryKey: ["consignment-settlements", id, consignment?.resellerId],
-    queryFn: () => settlementsApi.list({ resellerId: consignment!.resellerId, size: "50" }),
+    queryFn: () => settlementsApi.list(consignment!.resellerId ? { resellerId: consignment!.resellerId, size: "50" } : { size: "50" }),
     enabled: !!consignment?.resellerId,
     select: (data) => ({
       ...data,
@@ -422,7 +422,7 @@ export default function ConsignmentDetailPage() {
                   .map((i) => ({ productName: i.productName, qty: i.quantitySold, unitPrice: i.salePrice, commissionRate: i.commissionRate }));
                 setSettlementOffer({
                   consignmentId: id,
-                  resellerId: consignment.resellerId,
+                  resellerId: consignment.resellerId ?? undefined,
                   soldLines,
                   grossValue: pendingGross,
                   commissionValue: pendingGross * (avgCommissionPct / 100),
@@ -542,7 +542,7 @@ export default function ConsignmentDetailPage() {
         open={movementOpen}
         onClose={() => setMovementOpen(false)}
         consignmentId={id}
-        resellerId={consignment.resellerId}
+        resellerId={consignment.resellerId ?? undefined}
         items={consignment.items}
         onSettlementOffer={(data) => setSettlementOffer(data)}
       />
@@ -552,7 +552,7 @@ export default function ConsignmentDetailPage() {
           open={closeOpen}
           onClose={() => setCloseOpen(false)}
           consignmentId={id}
-          resellerId={consignment.resellerId}
+          resellerId={consignment.resellerId ?? undefined}
           items={consignment.items}
           alreadySettledGross={totalSettledGross}
           onSettled={() => { setCloseOpen(false); setExtratoOpen(true); }}

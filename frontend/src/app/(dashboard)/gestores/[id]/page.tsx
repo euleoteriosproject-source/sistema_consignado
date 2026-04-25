@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, ArrowRightLeft, Users, Mail, Loader2, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, Mail, Loader2, ExternalLink, X } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import type { PageResponse, ResellerSummary } from "@/types";
@@ -22,9 +22,15 @@ export default function GestorDetailPage() {
   const router = useRouter();
   const qc = useQueryClient();
 
+  const [transferMode, setTransferMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [transferOpen, setTransferOpen] = useState(false);
   const [targetManagerId, setTargetManagerId] = useState("");
+
+  function exitTransferMode() {
+    setTransferMode(false);
+    setSelected(new Set());
+  }
 
   const { data: managers } = useQuery({
     queryKey: ["managers"],
@@ -58,8 +64,8 @@ export default function GestorDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["manager-resellers", id] });
       qc.invalidateQueries({ queryKey: ["resellers"] });
-      toast.success(`${selected.size} revendedor(a)(s) transferido(a)(s)!`);
-      setSelected(new Set());
+      toast.success(`${selected.size} revendedor(es) transferido(s)!`);
+      exitTransferMode();
       setTransferOpen(false);
       setTargetManagerId("");
     },
@@ -100,15 +106,30 @@ export default function GestorDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-base">Revendedoras ativas</CardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">{resellers.length} revendedor(a)(s) ativo(a)(s)</p>
+            <CardTitle className="text-base">Revendedores ativos</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">{resellers.length} revendedor(es) ativo(s)</p>
           </div>
-          {selected.size > 0 && (
-            <Button size="sm" onClick={() => setTransferOpen(true)}>
-              <ArrowRightLeft className="h-4 w-4 mr-1" />
-              Transferir {selected.size === resellers.length ? "todas" : `${selected.size}`}
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {transferMode ? (
+              <>
+                {selected.size > 0 && (
+                  <Button size="sm" onClick={() => setTransferOpen(true)}>
+                    <ArrowRightLeft className="h-4 w-4 mr-1" />
+                    Transferir ({selected.size})
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={exitTransferMode}>
+                  <X className="h-4 w-4 mr-1" /> Cancelar
+                </Button>
+              </>
+            ) : (
+              resellers.length > 0 && (
+                <Button size="sm" variant="outline" onClick={() => setTransferMode(true)}>
+                  <ArrowRightLeft className="h-4 w-4 mr-1" /> Transferir
+                </Button>
+              )
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
@@ -117,19 +138,21 @@ export default function GestorDetailPage() {
             </div>
           ) : resellers.length === 0 ? (
             <p className="text-center text-muted-foreground py-10 text-sm">
-              Nenhuma revendedora ativa vinculada
+              Nenhum revendedor ativo vinculado
             </p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-10">
-                      <Checkbox
-                        checked={allSelected ? true : someSelected ? "indeterminate" : false}
-                        onCheckedChange={(v) => toggleAll(!!v)}
-                      />
-                    </TableHead>
+                    {transferMode && (
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                          onCheckedChange={(v) => toggleAll(!!v)}
+                        />
+                      </TableHead>
+                    )}
                     <TableHead>Nome</TableHead>
                     <TableHead>Telefone</TableHead>
                     <TableHead className="text-right">Lotes abertos</TableHead>
@@ -139,24 +162,35 @@ export default function GestorDetailPage() {
                 </TableHeader>
                 <TableBody>
                   {resellers.map((r) => (
-                    <TableRow key={r.id} className="cursor-pointer" onClick={() => toggleOne(r.id, !selected.has(r.id))}>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selected.has(r.id)}
-                          onCheckedChange={(v) => toggleOne(r.id, !!v)}
-                        />
-                      </TableCell>
+                    <TableRow
+                      key={r.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => {
+                        if (transferMode) toggleOne(r.id, !selected.has(r.id));
+                        else router.push(`/revendedores/${r.id}`);
+                      }}
+                    >
+                      {transferMode && (
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selected.has(r.id)}
+                            onCheckedChange={(v) => toggleOne(r.id, !!v)}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="font-medium">{r.name}</TableCell>
                       <TableCell className="text-muted-foreground">{r.phone}</TableCell>
                       <TableCell className="text-right">{r.openConsignments}</TableCell>
                       <TableCell className="text-right">{formatCurrency(r.openValue ?? 0)}</TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost" size="icon" className="h-7 w-7"
-                          onClick={(e) => { e.stopPropagation(); router.push(`/revendedoras/${r.id}`); }}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Button>
+                        {!transferMode && (
+                          <Button
+                            variant="ghost" size="icon" className="h-7 w-7"
+                            onClick={(e) => { e.stopPropagation(); router.push(`/revendedores/${r.id}`); }}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -173,12 +207,12 @@ export default function GestorDetailPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowRightLeft className="h-4 w-4" />
-              Transferir revendedoras
+              Transferir revendedores
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <p className="text-sm text-muted-foreground">
-              Transferindo <strong>{selected.size}</strong> revendedor(a)(s) de <strong>{manager.name}</strong> para:
+              Transferindo <strong>{selected.size}</strong> revendedor(es) de <strong>{manager.name}</strong> para:
             </p>
             <Select value={targetManagerId} onValueChange={setTargetManagerId}>
               <SelectTrigger><SelectValue placeholder="Selecione o(a) gestor(a) destino" /></SelectTrigger>

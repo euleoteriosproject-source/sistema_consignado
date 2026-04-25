@@ -89,7 +89,7 @@ async function fetchTenantInfo(
           m2.ok ? await m2.json() : null,
         );
       }
-      return { tenantName: null, userName: null, role: null };
+      return { tenantName: null, userName: null, role: null, logoUrl: null, primaryColor: null };
     }
 
     return extractInfo(
@@ -97,7 +97,7 @@ async function fetchTenantInfo(
       meRes.ok ? await meRes.json() : null,
     );
   } catch {
-    return { tenantName: null, userName: null, role: null };
+    return { tenantName: null, userName: null, role: null, logoUrl: null, primaryColor: null };
   }
 }
 

@@ -48,7 +48,10 @@ public class DashboardController {
     public ResponseEntity<ApiResponse<DashboardChartResponse>> getCharts(
         @RequestParam(defaultValue = "6m") String period
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(dashboardService.getCharts(TenantContext.TENANT_ID.get(), period)));
+        var tenantId  = TenantContext.TENANT_ID.get();
+        var userId    = TenantContext.USER_ID.get();
+        var isManager = "manager".equalsIgnoreCase(TenantContext.ROLE.get());
+        return ResponseEntity.ok(ApiResponse.ok(dashboardService.getCharts(tenantId, userId, isManager, period)));
     }
 
     private void requireOwner() {

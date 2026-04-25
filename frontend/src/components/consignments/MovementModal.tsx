@@ -14,7 +14,7 @@ import type { ConsignmentItem } from "@/types";
 
 export interface SettlementOfferData {
   consignmentId: string;
-  resellerId: string;
+  resellerId?: string;
   soldLines: { productName: string; qty: number; unitPrice: number; commissionRate: number }[];
   grossValue: number;
   commissionValue: number;
@@ -25,7 +25,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   consignmentId: string;
-  resellerId: string;
+  resellerId?: string;
   items: ConsignmentItem[];
   onSettlementOffer?: (data: SettlementOfferData) => void;
 }
