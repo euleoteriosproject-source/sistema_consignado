@@ -13,5 +13,8 @@ public record CreateSupportTicketRequest(
     String description,
 
     @Pattern(regexp = "low|medium|high", message = "Prioridade inválida")
-    String priority
+    String priority,
+
+    String attachmentUrl,
+    String attachmentName
 ) {}

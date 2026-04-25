@@ -13,6 +13,7 @@ import com.consignado.api.domain.user.UserRepository;
 import com.consignado.api.multitenancy.TenantContext;
 import com.consignado.api.shared.exception.BusinessException;
 import com.consignado.api.shared.exception.ResourceNotFoundException;
+import com.consignado.api.storage.SupabaseStorageService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ public class SupportService {
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final ResendEmailService resendEmailService;
+    private final SupabaseStorageService storageService;
 
     @Transactional
     public SupportTicketResponse create(CreateSupportTicketRequest request) {
@@ -41,6 +43,8 @@ public class SupportService {
         ticket.setSubject(request.subject());
         ticket.setDescription(request.description());
         ticket.setPriority(request.priority() != null ? request.priority() : "medium");
+        ticket.setAttachmentUrl(request.attachmentUrl());
+        ticket.setAttachmentName(request.attachmentName());
 
         var saved = ticketRepository.save(ticket);
         log.info("Support ticket created id={} tenant={}", saved.getId(), tenantId);
@@ -79,10 +83,16 @@ public class SupportService {
         );
     }
 
+    public String uploadAttachment(org.springframework.web.multipart.MultipartFile file) {
+        var storagePath = storageService.upload("support", file);
+        return storageService.getSignedUrl(storagePath, 60L * 60 * 24 * 365 * 5);
+    }
+
     private SupportTicketResponse toResponse(SupportTicket t) {
         return new SupportTicketResponse(
             t.getId(), t.getSubject(), t.getDescription(),
             t.getPriority(), t.getStatus(),
+            t.getAttachmentUrl(), t.getAttachmentName(),
             t.getAdminResponse(), t.getRespondedAt(),
             t.getCreatedAt(), t.getUpdatedAt()
         );

@@ -290,6 +290,8 @@ export interface SupportTicket {
   description: string;
   priority: "low" | "medium" | "high";
   status: "open" | "in_progress" | "resolved";
+  attachmentUrl: string | null;
+  attachmentName: string | null;
   adminResponse: string | null;
   respondedAt: string | null;
   createdAt: string;

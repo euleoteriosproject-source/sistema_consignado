@@ -37,6 +37,12 @@ public class SupportTicket extends TimestampedEntity {
     @Column(nullable = false, length = 20)
     private String status = "open";
 
+    @Column(name = "attachment_url", columnDefinition = "TEXT")
+    private String attachmentUrl;
+
+    @Column(name = "attachment_name")
+    private String attachmentName;
+
     @Column(name = "admin_response", columnDefinition = "TEXT")
     private String adminResponse;
 
@@ -63,6 +69,12 @@ public class SupportTicket extends TimestampedEntity {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getAttachmentUrl() { return attachmentUrl; }
+    public void setAttachmentUrl(String attachmentUrl) { this.attachmentUrl = attachmentUrl; }
+
+    public String getAttachmentName() { return attachmentName; }
+    public void setAttachmentName(String attachmentName) { this.attachmentName = attachmentName; }
 
     public String getAdminResponse() { return adminResponse; }
     public void setAdminResponse(String adminResponse) { this.adminResponse = adminResponse; }

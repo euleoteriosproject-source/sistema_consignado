@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LifeBuoy, Plus, Loader2, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
+import { LifeBuoy, Plus, Loader2, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronUp, MessageSquare, Paperclip, X as XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import type { SupportTicket } from "@/types";
@@ -36,9 +36,25 @@ function NewTicketDialog({ onClose }: { onClose: () => void }) {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: () => supportApi.create({ subject, description, priority }),
+    mutationFn: async () => {
+      let attachmentUrl: string | undefined;
+      let attachmentName: string | undefined;
+      if (file) {
+        setUploading(true);
+        try {
+          const res = await supportApi.uploadAttachment(file);
+          attachmentUrl = res.data.url;
+          attachmentName = res.data.name;
+        } finally {
+          setUploading(false);
+        }
+      }
+      return supportApi.create({ subject, description, priority, attachmentUrl, attachmentName });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["support-tickets"] });
       toast.success("Chamado aberto! Entraremos em contato em breve.");
@@ -79,11 +95,34 @@ function NewTicketDialog({ onClose }: { onClose: () => void }) {
             <Label>Descrição *</Label>
             <Textarea
               placeholder="Descreva o problema com o máximo de detalhes. Inclua o que estava fazendo quando ocorreu."
-              rows={5}
+              rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="resize-none"
             />
+          </div>
+          <div className="space-y-1">
+            <Label>Anexo <span className="text-muted-foreground text-xs">(opcional — imagem ou PDF)</span></Label>
+            {file ? (
+              <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-muted/30">
+                <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm truncate flex-1">{file.name}</span>
+                <button onClick={() => setFile(null)} className="text-muted-foreground hover:text-destructive">
+                  <XIcon className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-muted/30 transition-colors">
+                <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm text-muted-foreground">Clique para selecionar arquivo</span>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+            )}
           </div>
           <div className="flex gap-2 pt-1">
             <Button variant="outline" className="flex-1" onClick={onClose} disabled={mutation.isPending}>
@@ -94,8 +133,8 @@ function NewTicketDialog({ onClose }: { onClose: () => void }) {
               disabled={!subject.trim() || !description.trim() || mutation.isPending}
               onClick={() => mutation.mutate()}
             >
-              {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              Enviar chamado
+              {(mutation.isPending || uploading) && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              {uploading ? "Enviando arquivo..." : "Enviar chamado"}
             </Button>
           </div>
         </div>
@@ -144,6 +183,20 @@ function TicketCard({ ticket }: { ticket: SupportTicket }) {
             <p className="text-xs text-muted-foreground uppercase font-medium mb-1">Sua mensagem</p>
             <p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
           </div>
+          {ticket.attachmentUrl && (
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-medium mb-1">Anexo</p>
+              <a
+                href={ticket.attachmentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <Paperclip className="h-3.5 w-3.5" />
+                {ticket.attachmentName ?? "Ver anexo"}
+              </a>
+            </div>
+          )}
           {hasResponse && (
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1">
               <p className="text-xs font-medium text-primary uppercase">Resposta do suporte</p>

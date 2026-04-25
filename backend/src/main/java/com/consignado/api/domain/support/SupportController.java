@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.consignado.api.domain.support.dto.CreateSupportTicketRequest;
 import com.consignado.api.domain.support.dto.SupportTicketResponse;
@@ -41,6 +43,18 @@ public class SupportController {
     public ResponseEntity<ApiResponse<List<SupportTicketResponse>>> list() {
         requireOwner();
         return ResponseEntity.ok(ApiResponse.ok(supportService.list()));
+    }
+
+    @PostMapping("/upload-attachment")
+    public ResponseEntity<ApiResponse<java.util.Map<String, String>>> uploadAttachment(
+        @RequestParam("file") MultipartFile file
+    ) {
+        requireOwner();
+        var url = supportService.uploadAttachment(file);
+        return ResponseEntity.ok(ApiResponse.ok(java.util.Map.of(
+            "url", url,
+            "name", file.getOriginalFilename() != null ? file.getOriginalFilename() : "anexo"
+        )));
     }
 
     @PatchMapping("/{id}/status")
