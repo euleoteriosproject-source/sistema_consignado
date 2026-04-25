@@ -48,6 +48,7 @@ export function MobileNav() {
           >
             <div className="flex items-center gap-2 px-6 py-5 border-b border-sidebar-border">
               {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={logoUrl} alt={tenantName ?? "Logo"} className="h-8 w-8 rounded object-contain shrink-0" />
               ) : (
                 <Gem className="h-6 w-6 text-primary" />

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Building2, User, Tag, X, Plus, Image, Upload, ImageOff } from "lucide-react";
+import { Loader2, Save, Building2, User, Tag, X, Plus, ImageIcon, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/authStore";
@@ -190,7 +190,7 @@ export default function ConfiguracoesPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Image className="h-4 w-4" />
+                <ImageIcon className="h-4 w-4" />
                 Identidade visual
               </CardTitle>
             </CardHeader>
@@ -201,6 +201,7 @@ export default function ConfiguracoesPage() {
                   {/* Preview */}
                   <div className="h-16 w-16 rounded border flex items-center justify-center bg-muted/30 shrink-0 overflow-hidden">
                     {logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={logoUrl}
                         alt="Logo"
@@ -208,7 +209,7 @@ export default function ConfiguracoesPage() {
                         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                       />
                     ) : (
-                      <Image className="h-6 w-6 text-muted-foreground" />
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
                     )}
                   </div>
                   <div className="flex-1 space-y-2">

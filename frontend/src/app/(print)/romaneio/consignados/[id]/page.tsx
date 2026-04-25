@@ -99,6 +99,7 @@ export default function RomaneioPrintPage() {
         <div className="header">
           <div className="company">
             {settings.logoUrl
+              // eslint-disable-next-line @next/next/no-img-element
               ? <img src={settings.logoUrl} alt={settings.name} className="company-logo" />
               : <div style={{ width: 50, height: 50, borderRadius: 8, background: color, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 20 }}>
                   {settings.name.charAt(0)}
