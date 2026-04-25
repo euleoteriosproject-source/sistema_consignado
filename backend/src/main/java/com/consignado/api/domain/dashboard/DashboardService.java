@@ -51,20 +51,25 @@ public class DashboardService {
             ? resellerRepository.countByManagerIdAndStatusAndDeletedAtIsNull(managerId, "active")
             : resellerRepository.countByTenantIdAndStatusAndDeletedAtIsNull(tenantId, "active");
 
+        // Contagem de lotes abertos: apenas reseller (exclui manager_stock para não duplicar)
         long openCount = isManager
             ? consignmentRepository.countByManagerIdAndStatus(managerId, "open")
                 + consignmentRepository.countByManagerIdAndStatus(managerId, "partially_settled")
-            : consignmentRepository.countByTenantIdAndStatus(tenantId, "open")
-                + consignmentRepository.countByTenantIdAndStatus(tenantId, "partially_settled");
+            : consignmentRepository.countByTenantIdAndConsignmentTypeAndStatus(tenantId, "reseller", "open")
+                + consignmentRepository.countByTenantIdAndConsignmentTypeAndStatus(tenantId, "reseller", "partially_settled");
 
         long overdueCount = isManager
             ? consignmentRepository.countByManagerIdAndStatus(managerId, "overdue")
-            : consignmentRepository.countByTenantIdAndStatus(tenantId, "overdue");
+            : consignmentRepository.countByTenantIdAndConsignmentTypeAndStatus(tenantId, "reseller", "overdue");
 
         var activeStatuses = List.of("open", "partially_settled", "overdue");
+
+        // Valor em circulação: APENAS lotes reseller para evitar dupla contagem.
+        // Lotes manager_stock representam estoque do gestor — as mesmas peças
+        // aparecem novamente nos lotes reseller quando o gestor distribui para revendedores.
         var activeConsignments = isManager
-            ? consignmentRepository.findByManagerIdAndStatusIn(managerId, activeStatuses)
-            : consignmentRepository.findByTenantIdAndStatusIn(tenantId, activeStatuses);
+            ? consignmentRepository.findByManagerIdAndConsignmentTypeAndStatusIn(managerId, "reseller", activeStatuses)
+            : consignmentRepository.findByTenantIdAndConsignmentTypeAndStatusIn(tenantId, "reseller", activeStatuses);
         var activeIds = activeConsignments.stream().map(Consignment::getId).toList();
 
         var totalOpenValue = BigDecimal.ZERO;

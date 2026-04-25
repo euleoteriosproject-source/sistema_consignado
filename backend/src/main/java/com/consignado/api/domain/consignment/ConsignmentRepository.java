@@ -20,7 +20,14 @@ public interface ConsignmentRepository extends JpaRepository<Consignment, UUID>,
 
     List<Consignment> findByTenantIdAndStatusIn(UUID tenantId, List<String> statuses);
 
+    // Filtra por tipo de consignment — evita dupla contagem (manager_stock + reseller)
+    List<Consignment> findByTenantIdAndConsignmentTypeAndStatusIn(UUID tenantId, String consignmentType, List<String> statuses);
+
+    List<Consignment> findByManagerIdAndConsignmentTypeAndStatusIn(UUID managerId, String consignmentType, List<String> statuses);
+
     long countByTenantIdAndStatus(UUID tenantId, String status);
+
+    long countByTenantIdAndConsignmentTypeAndStatus(UUID tenantId, String consignmentType, String status);
 
     List<Consignment> findByManagerIdAndStatusIn(UUID managerId, List<String> statuses);
 
