@@ -290,7 +290,10 @@ export interface SupportTicket {
   description: string;
   priority: "low" | "medium" | "high";
   status: "open" | "in_progress" | "resolved";
+  adminResponse: string | null;
+  respondedAt: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserProfile {

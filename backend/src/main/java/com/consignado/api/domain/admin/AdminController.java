@@ -62,6 +62,16 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.ok(adminService.updateTicketStatus(id, body.get("status"))));
     }
 
+    @PatchMapping("/support-tickets/{id}/respond")
+    public ResponseEntity<ApiResponse<AdminTicketResponse>> respondToTicket(
+        @PathVariable UUID id, @RequestBody java.util.Map<String, String> body
+    ) {
+        requireAdmin();
+        return ResponseEntity.ok(ApiResponse.ok(
+            adminService.respondToTicket(id, body.get("response"), body.get("status"))
+        ));
+    }
+
     private void requireAdmin() {
         if (!"superadmin".equals(TenantContext.ROLE.get())) {
             throw new ForbiddenException("Acesso restrito ao administrador");

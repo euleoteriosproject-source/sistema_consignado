@@ -82,7 +82,9 @@ public class SupportService {
     private SupportTicketResponse toResponse(SupportTicket t) {
         return new SupportTicketResponse(
             t.getId(), t.getSubject(), t.getDescription(),
-            t.getPriority(), t.getStatus(), t.getCreatedAt()
+            t.getPriority(), t.getStatus(),
+            t.getAdminResponse(), t.getRespondedAt(),
+            t.getCreatedAt(), t.getUpdatedAt()
         );
     }
 }

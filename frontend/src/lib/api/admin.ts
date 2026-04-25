@@ -18,7 +18,10 @@ export interface AdminTicket {
   description: string;
   priority: string;
   status: string;
+  adminResponse: string | null;
+  respondedAt: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface AdminStats {
@@ -40,5 +43,10 @@ export const adminApi = {
     apiFetch<AdminTicket>(`/api/v1/admin/support-tickets/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
+    }),
+  respondToTicket: (id: string, response: string, status: string) =>
+    apiFetch<AdminTicket>(`/api/v1/admin/support-tickets/${id}/respond`, {
+      method: "PATCH",
+      body: JSON.stringify({ response, status }),
     }),
 };

@@ -72,6 +72,23 @@ public class AdminService {
         return toTicketResponse(ticket, tenant != null ? tenant.getName() : "—");
     }
 
+    @Transactional
+    public AdminTicketResponse respondToTicket(UUID ticketId, String response, String status) {
+        var ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new ResourceNotFoundException("Chamado", ticketId));
+        if (response != null && !response.isBlank()) {
+            ticket.setAdminResponse(response.trim());
+            ticket.setRespondedAt(java.time.OffsetDateTime.now());
+        }
+        if (status != null && !status.isBlank()) {
+            ticket.setStatus(status);
+        }
+        ticketRepository.save(ticket);
+        log.info("Admin responded to ticket={} status={}", ticketId, status);
+        var tenant = tenantRepository.findById(ticket.getTenantId()).orElse(null);
+        return toTicketResponse(ticket, tenant != null ? tenant.getName() : "—");
+    }
+
     @Transactional(readOnly = true)
     public AdminStatsResponse stats() {
         long tenants = tenantRepository.count();
@@ -90,8 +107,10 @@ public class AdminService {
 
     private AdminTicketResponse toTicketResponse(SupportTicket t, String tenantName) {
         return new AdminTicketResponse(
-            t.getId(), tenantName, t.getSubject(),
-            t.getDescription(), t.getPriority(), t.getStatus(), t.getCreatedAt()
+            t.getId(), tenantName, t.getSubject(), t.getDescription(),
+            t.getPriority(), t.getStatus(),
+            t.getAdminResponse(), t.getRespondedAt(),
+            t.getCreatedAt(), t.getUpdatedAt()
         );
     }
 }

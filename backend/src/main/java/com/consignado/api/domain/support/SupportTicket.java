@@ -37,6 +37,12 @@ public class SupportTicket extends TimestampedEntity {
     @Column(nullable = false, length = 20)
     private String status = "open";
 
+    @Column(name = "admin_response", columnDefinition = "TEXT")
+    private String adminResponse;
+
+    @Column(name = "responded_at")
+    private java.time.OffsetDateTime respondedAt;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -57,4 +63,10 @@ public class SupportTicket extends TimestampedEntity {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getAdminResponse() { return adminResponse; }
+    public void setAdminResponse(String adminResponse) { this.adminResponse = adminResponse; }
+
+    public java.time.OffsetDateTime getRespondedAt() { return respondedAt; }
+    public void setRespondedAt(java.time.OffsetDateTime respondedAt) { this.respondedAt = respondedAt; }
 }

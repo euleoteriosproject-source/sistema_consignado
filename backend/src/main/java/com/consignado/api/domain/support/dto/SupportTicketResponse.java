@@ -9,5 +9,8 @@ public record SupportTicketResponse(
     String description,
     String priority,
     String status,
-    OffsetDateTime createdAt
+    String adminResponse,
+    OffsetDateTime respondedAt,
+    OffsetDateTime createdAt,
+    OffsetDateTime updatedAt
 ) {}
