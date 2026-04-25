@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import type { SupportTicket } from "@/types";
 
-const WHATSAPP_NUMBER = "5511999999999"; // substitua pelo número real
+const WHATSAPP_NUMBER = "5551982895068";
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Olá! Preciso de suporte com o sistema de consignado.")}`;
 
 const priorityConfig = {
