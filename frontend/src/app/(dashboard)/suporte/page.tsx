@@ -47,8 +47,8 @@ function NewTicketDialog({ onClose }: { onClose: () => void }) {
         setUploading(true);
         try {
           const res = await supportApi.uploadAttachment(file);
-          attachmentUrl = res.data.url;
-          attachmentName = res.data.name;
+          attachmentUrl = res.url;
+          attachmentName = res.name;
         } finally {
           setUploading(false);
         }

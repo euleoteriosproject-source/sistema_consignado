@@ -11,7 +11,7 @@ export const supportApi = {
   uploadAttachment: (file: File) => {
     const fd = new FormData();
     fd.append("file", file);
-    return apiUpload("/api/v1/support/tickets/upload-attachment", fd) as Promise<{ data: { url: string; name: string } }>;
+    return apiUpload("/api/v1/support/tickets/upload-attachment", fd) as Promise<{ url: string; name: string }>;
   },
   updateStatus: (id: string, status: string) =>
     apiFetch<SupportTicket>(`/api/v1/support/tickets/${id}/status`, {
