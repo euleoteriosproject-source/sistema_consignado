@@ -19,7 +19,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { SettlementFormModal } from "@/components/settlements/SettlementFormModal";
 import { settingsApi } from "@/lib/api/settings";
 import { useAuthStore } from "@/stores/authStore";
-import type { PageResponse, Settlement, SettlementsSummary, ConsignmentSummary, Consignment, ResellerSummary, TenantSettings } from "@/types";
+import type { PageResponse, Settlement, SettlementsSummary, ConsignmentSummary, Consignment, ResellerSummary } from "@/types";
 
 const paymentLabel: Record<string, string> = {
   cash: "Dinheiro", pix: "PIX", transfer: "Transferência", other: "Outro",

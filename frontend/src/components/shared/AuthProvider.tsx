@@ -25,7 +25,7 @@ type TenantInfo = {
 function hexToHsl(hex: string): string | null {
   const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!r) return null;
-  let ri = parseInt(r[1], 16) / 255, gi = parseInt(r[2], 16) / 255, bi = parseInt(r[3], 16) / 255;
+  const ri = parseInt(r[1], 16) / 255, gi = parseInt(r[2], 16) / 255, bi = parseInt(r[3], 16) / 255;
   const max = Math.max(ri, gi, bi), min = Math.min(ri, gi, bi);
   let h = 0, s = 0;
   const l = (max + min) / 2;

@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Printer, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import type { Consignment, TenantSettings, Settlement } from "@/types";
+import type { Consignment, Settlement } from "@/types";
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR");
