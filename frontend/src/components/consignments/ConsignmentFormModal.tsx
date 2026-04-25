@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, Package, Users } from "lucide-react";
+import { Plus, Trash2, Loader2, Package } from "lucide-react";
 import { consignmentsApi } from "@/lib/api/consignments";
 import { resellersApi } from "@/lib/api/resellers";
 import { productsApi } from "@/lib/api/products";
@@ -24,7 +24,7 @@ export function ConsignmentFormModal({ open, onClose, onCreated }: Props) {
   const role = useAuthStore((s) => s.role);
   const userName = useAuthStore((s) => s.userName);
   const isOwner = role === "owner";
-  const [mode, setMode] = useState<"reseller" | "manager_stock">("reseller");
+  const [mode, setMode] = useState<"reseller" | "manager_stock">(isOwner ? "manager_stock" : "reseller");
   const [selectedManagerId, setSelectedManagerId] = useState("");
   const [resellerId, setResellerId] = useState("");
   const [deliveredAt, setDeliveredAt] = useState(new Date().toISOString().split("T")[0]);
@@ -97,7 +97,7 @@ export function ConsignmentFormModal({ open, onClose, onCreated }: Props) {
   });
 
   const handleClose = () => {
-    setMode("reseller"); setSelectedManagerId(""); setResellerId("");
+    setMode(isOwner ? "manager_stock" : "reseller"); setSelectedManagerId(""); setResellerId("");
     setDeliveredAt(new Date().toISOString().split("T")[0]);
     setExpectedReturnAt(""); setNotes(""); setItems([{ productId: "", quantitySent: 1 }]);
     onClose();
@@ -119,23 +119,9 @@ export function ConsignmentFormModal({ open, onClose, onCreated }: Props) {
         </DialogHeader>
         <div className="space-y-4 mt-2">
           {isOwner && (
-            <div className="flex gap-2">
-              <Button
-                type="button" size="sm"
-                variant={mode === "reseller" ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => { setMode("reseller"); setResellerId(""); }}
-              >
-                <Users className="h-4 w-4 mr-1" /> Para revendedora
-              </Button>
-              <Button
-                type="button" size="sm"
-                variant={mode === "manager_stock" ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => { setMode("manager_stock"); setResellerId(""); }}
-              >
-                <Package className="h-4 w-4 mr-1" /> Estoque do(a) gestor(a)
-              </Button>
+            <div className="rounded-md bg-muted/50 border px-3 py-2 text-sm text-muted-foreground flex items-center gap-2">
+              <Package className="h-4 w-4 shrink-0" />
+              Lote de estoque — será repassado ao(à) gestor(a) selecionado(a)
             </div>
           )}
 
@@ -155,7 +141,7 @@ export function ConsignmentFormModal({ open, onClose, onCreated }: Props) {
             )}
             {mode === "reseller" && (
               <div className="col-span-2 space-y-1">
-                <Label>Revendedor(a) *</Label>
+                <Label>Revendedor *</Label>
                 <Select value={resellerId} onValueChange={handleResellerChange}>
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>

@@ -79,7 +79,7 @@ function ConsignadosPageInner() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Consignados</h1>
-          <p className="text-muted-foreground text-sm">Gerencie os lotes enviados para revendedoras</p>
+          <p className="text-muted-foreground text-sm">Gerencie os lotes enviados para revendedores</p>
         </div>
         <Button onClick={() => setModalOpen(true)} className="sm:w-auto w-full">
           <Plus className="h-4 w-4 mr-2" />
@@ -92,7 +92,7 @@ function ConsignadosPageInner() {
         <Tabs value={managerTab} onValueChange={(v) => { setManagerTab(v as "reseller" | "manager_stock"); setPage(0); }}>
           <TabsList>
             <TabsTrigger value="reseller" className="gap-1.5">
-              <UserCog className="h-3.5 w-3.5" /> Minhas revendedoras
+              <UserCog className="h-3.5 w-3.5" /> Meus revendedores
             </TabsTrigger>
             <TabsTrigger value="manager_stock" className="gap-1.5">
               <Package className="h-3.5 w-3.5" /> Lotes recebidos
