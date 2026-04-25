@@ -90,7 +90,7 @@ export function PostMovementSettlementDialog({ open, data, onClose }: Props) {
 
           {/* Comissão com % editável */}
           <div className="space-y-1">
-            <Label className="text-sm">Comissão da revendedora</Label>
+            <Label className="text-sm">Comissão (%)</Label>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 w-28">
                 <Input

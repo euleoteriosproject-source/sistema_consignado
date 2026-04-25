@@ -87,10 +87,7 @@ export function MovementModal({ open, onClose, consignmentId, resellerId, items,
           };
         });
         const grossValue = soldLines.reduce((s, l) => s + l.qty * l.unitPrice, 0);
-        const commissionValue = soldLines.reduce(
-          (s, l) => s + l.qty * l.unitPrice * (l.commissionRate / 100), 0
-        );
-        onSettlementOffer({ consignmentId, resellerId, soldLines, grossValue, commissionValue, netValue: grossValue - commissionValue });
+        onSettlementOffer({ consignmentId, resellerId, soldLines, grossValue, commissionValue: 0, netValue: grossValue });
         onClose();
       } else {
         onClose();

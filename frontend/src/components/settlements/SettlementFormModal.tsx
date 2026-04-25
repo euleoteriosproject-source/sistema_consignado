@@ -81,7 +81,7 @@ export function SettlementFormModal({ open, onClose }: Props) {
   const alreadySettledTotal = existingSettlements.reduce((sum, s) => sum + s.totalSoldValue, 0);
   const remainingTotal = Math.max(0, itemsGrossTotal - alreadySettledTotal);
 
-  // Auto-fill values when consignment loads
+  // Auto-fill total when consignment loads (commission fica em branco — usuário informa)
   useEffect(() => {
     if (!consignment) return;
     const items = consignment.items.filter((i) => i.quantitySold > 0);
@@ -89,12 +89,10 @@ export function SettlementFormModal({ open, onClose }: Props) {
     if (gross > 0) {
       const alreadySettled = existingSettlements.reduce((sum, s) => sum + s.totalSoldValue, 0);
       setTotalInput(Math.max(0, gross - alreadySettled).toFixed(2));
-      const wPct =
-        items.reduce((sum, i) => sum + i.commissionRate * i.soldValue, 0) / gross;
-      setCommissionPct(wPct.toFixed(0));
     } else {
       setTotalInput("");
     }
+    setCommissionPct("");
   }, [consignment?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset consignment when reseller changes
@@ -132,7 +130,7 @@ export function SettlementFormModal({ open, onClose }: Props) {
 
   const handleClose = () => {
     setResellerId(""); setConsignmentId("none"); setTotalInput("");
-    setCommissionPct("30"); setPaymentMethod("pix");
+    setCommissionPct(""); setPaymentMethod("pix");
     setSettlementDate(new Date().toISOString().split("T")[0]); setNotes("");
     onClose();
   };
@@ -215,7 +213,6 @@ export function SettlementFormModal({ open, onClose }: Props) {
                         </div>
                         <div className="text-right shrink-0 ml-4">
                           <p className="font-medium">{formatCurrency(item.soldValue)}</p>
-                          <p className="text-xs text-muted-foreground">{item.commissionRate}% com.</p>
                         </div>
                       </div>
                     ))}

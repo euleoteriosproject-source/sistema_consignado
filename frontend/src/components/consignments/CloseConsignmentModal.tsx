@@ -102,18 +102,13 @@ export function CloseConsignmentModal({
       const pendingGross = totalGross - alreadySettledGross;
 
       if (pendingGross > 0.01) {
-        const commissionValue = allSoldLines.reduce((s, l) => s + l.qty * l.unitPrice * (l.commissionRate / 100), 0);
-        const alreadySettledCommission = alreadySettledGross > 0
-          ? commissionValue * (alreadySettledGross / totalGross)
-          : 0;
-        const pendingCommission = commissionValue - alreadySettledCommission;
         onClose();
         onSettlementOffer({
           consignmentId, resellerId,
           soldLines: allSoldLines,
           grossValue: pendingGross,
-          commissionValue: pendingCommission,
-          netValue: pendingGross - pendingCommission,
+          commissionValue: 0,
+          netValue: pendingGross,
         });
       } else {
         onClose();
