@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, TrendingUp, DollarSign, Wallet, Clock, ExternalLink, Receipt, AlertCircle, Printer } from "lucide-react";
+import { Plus, TrendingUp, DollarSign, Wallet, Clock, ExternalLink, Receipt, Printer } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { SettlementFormModal } from "@/components/settlements/SettlementFormModal";
 import { settingsApi } from "@/lib/api/settings";
