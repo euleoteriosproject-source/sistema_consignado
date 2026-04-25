@@ -74,7 +74,7 @@ export function Sidebar() {
             "text-xs px-2 py-1 rounded-full font-medium",
             role === "owner" ? "bg-amber-500/20 text-amber-300" : "bg-blue-500/20 text-blue-300"
           )}>
-            {role === "owner" ? "Dono(a)" : "Gestor(a)"}
+            {role === "owner" ? "Proprietário(a)" : "Gestor(a)"}
           </span>
         )}
       </div>

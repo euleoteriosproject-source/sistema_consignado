@@ -95,7 +95,7 @@ function ConsignadosPageInner() {
               <UserCog className="h-3.5 w-3.5" /> Minhas revendedoras
             </TabsTrigger>
             <TabsTrigger value="manager_stock" className="gap-1.5">
-              <Package className="h-3.5 w-3.5" /> Lotes recebidos do dono
+              <Package className="h-3.5 w-3.5" /> Lotes recebidos
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -178,7 +178,7 @@ function ConsignadosPageInner() {
                         <TableCell className="font-medium">{c.resellerName}</TableCell>
                         <TableCell>
                           {c.consignmentType === "manager_stock"
-                            ? (isOwner ? (userName ?? "Dono") : "Dono")
+                            ? (isOwner ? (userName ?? "Proprietário(a)") : "Proprietário(a)")
                             : c.managerName}
                         </TableCell>
                         <TableCell>{formatDate(c.deliveredAt)}</TableCell>

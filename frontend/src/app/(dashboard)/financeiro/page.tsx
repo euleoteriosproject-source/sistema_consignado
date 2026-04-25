@@ -542,7 +542,7 @@ export default function FinanceiroPage() {
         {isManager && (
           <TabsContent value="stock" className="space-y-4">
             <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 px-4 py-3 text-sm text-blue-800 dark:text-blue-300">
-              Acompanhamento dos lotes que você recebeu do dono. Os acertos e pagamentos são registrados pelo proprietário.
+              Acompanhamento dos lotes recebidos. Os acertos e pagamentos são registrados pelo proprietário.
             </div>
             <Card>
               <CardHeader>
@@ -552,7 +552,7 @@ export default function FinanceiroPage() {
                 {loadingStock ? (
                   <div className="p-4 space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
                 ) : stockLots.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8 text-sm">Nenhum lote recebido do dono em aberto</p>
+                  <p className="text-center text-muted-foreground py-8 text-sm">Nenhum lote recebido em aberto</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>

@@ -79,7 +79,7 @@ export function ConsignmentFormModal({ open, onClose, onCreated }: Props) {
         notes: (() => {
           // Quando dono cria lote para revendedora via gestora, registra quem criou
           const autoNote = isOwner && mode === "reseller" && effectiveManagerId
-            ? `Criado pelo dono (${userName ?? "Dono"})`
+            ? `Criado pelo proprietário (${userName ?? "Proprietário(a)"})`
             : null;
           const combined = [autoNote, notes || null].filter(Boolean).join(" — ");
           return combined || undefined;
