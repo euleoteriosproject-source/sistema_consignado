@@ -232,6 +232,7 @@ export default function FinanceiroPage() {
   const router = useRouter();
   const role = useAuthStore((s) => s.role);
   const isManager = role === "manager";
+  const isOwner = role === "owner";
   const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
@@ -249,24 +250,31 @@ export default function FinanceiroPage() {
   const { data: summary } = useQuery<SettlementsSummary>({
     queryKey: ["settlements-summary", resellerFilter],
     queryFn: () => settlementsApi.summary(resellerFilter !== "all" ? { resellerId: resellerFilter } : undefined),
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const { data, isLoading } = useQuery<PageResponse<Settlement>>({
     queryKey: ["settlements", page, resellerFilter],
     queryFn: () => settlementsApi.list(settlementParams),
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
-  // Lotes reseller em aberto (para revendedoras)
+  // Dono vê manager_stock (o que deu para gestores), gestor vê reseller (o que deu para revendedores)
+  const primaryType = isOwner ? "manager_stock" : "reseller";
   const { data: openConsignmentsData, isLoading: loadingOpen } = useQuery<PageResponse<ConsignmentSummary>>({
-    queryKey: ["consignments-open-financial-reseller"],
-    queryFn: () => consignmentsApi.list({ size: "200", consignmentType: "reseller" }),
+    queryKey: ["consignments-open-financial", primaryType],
+    queryFn: () => consignmentsApi.list({ size: "200", consignmentType: primaryType }),
     select: (d) => ({
       ...d,
       content: d.content.filter((c) => ["open", "partially_settled", "overdue"].includes(c.status)),
     }),
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
-  // Lotes manager_stock em aberto (recebidos do dono — só para gestora)
+  // Lotes manager_stock recebidos do dono (aba "Estoque recebido" — só para gestor)
   const { data: stockLotsData, isLoading: loadingStock } = useQuery<PageResponse<ConsignmentSummary>>({
     queryKey: ["consignments-open-financial-stock"],
     queryFn: () => consignmentsApi.list({ size: "200", consignmentType: "manager_stock" }),
@@ -275,6 +283,8 @@ export default function FinanceiroPage() {
       content: d.content.filter((c) => ["open", "partially_settled", "overdue"].includes(c.status)),
     }),
     enabled: isManager,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const openLots = openConsignmentsData?.content ?? [];
@@ -505,7 +515,7 @@ export default function FinanceiroPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Revendedor(a)</TableHead>
+                        <TableHead>{isOwner ? "Gestor(a)" : "Revendedor(a)"}</TableHead>
                         <TableHead>Retirada</TableHead>
                         <TableHead className="text-right">Val. Estimado</TableHead>
                         <TableHead>Status</TableHead>

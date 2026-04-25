@@ -166,7 +166,6 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
   });
 
   const managerValue = watch("managerId");
-  const [instagram, facebook, tiktok] = [watch("instagram"), watch("facebook"), watch("tiktok")];
 
   const tabIndex = TABS.indexOf(tab);
   const isLastTab = tabIndex === TABS.length - 1;

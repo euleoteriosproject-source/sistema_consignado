@@ -90,6 +90,8 @@ function ResellersReport({ downloading, onDownload }: { downloading: string | nu
   const { data, isLoading } = useQuery<PageResponse<ResellerSummary>>({
     queryKey: ["report-resellers"],
     queryFn: () => resellersApi.list({ size: "200" }),
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const allResellers = useMemo(() => data?.content ?? [], [data]);
@@ -197,6 +199,8 @@ function ConsignmentsReport({ downloading, onDownload }: { downloading: string |
   const { data, isLoading } = useQuery<PageResponse<ConsignmentSummary>>({
     queryKey: ["report-consignments"],
     queryFn: () => consignmentsApi.list({ size: "200" }),
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const all = useMemo(() => data?.content ?? [], [data]);
@@ -347,10 +351,14 @@ function FinancialReport({ downloading, onDownload }: { downloading: string | nu
   const { data: summary } = useQuery({
     queryKey: ["report-financial-summary"],
     queryFn: () => settlementsApi.summary(),
+    staleTime: 0,
+    refetchOnMount: true,
   });
   const { data, isLoading } = useQuery<PageResponse<Settlement>>({
     queryKey: ["report-financial-list"],
     queryFn: () => settlementsApi.list({ size: "200", sort: "settlementDate,desc" }),
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const settlements = data?.content ?? [];
@@ -422,10 +430,14 @@ function RankingReport({ downloading, onDownload }: { downloading: string | null
   const { data, isLoading } = useQuery<PageResponse<ResellerSummary>>({
     queryKey: ["report-ranking"],
     queryFn: () => resellersApi.list({ size: "200" }),
+    staleTime: 0,
+    refetchOnMount: true,
   });
   const { data: settlData } = useQuery<PageResponse<Settlement>>({
     queryKey: ["report-ranking-settlements"],
     queryFn: () => settlementsApi.list({ size: "500" }),
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const resellerMap = Object.fromEntries((data?.content ?? []).map((r) => [r.id, r.name]));
