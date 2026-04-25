@@ -40,22 +40,22 @@ const schema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   phone: z.string().min(1, "Telefone é obrigatório"),
   managerId: z.string().min(1, "Gestor(a) é obrigatório"),
-  cpf: z.string().min(1, "CPF é obrigatório"),
+  cpf: z.string().optional(),
   birthDate: z.string().optional(),
   phone2: z.string().optional(),
   email: z.string().email("E-mail inválido").optional().or(z.literal("")),
-  addressStreet: z.string().min(1, "Rua é obrigatória"),
-  addressNumber: z.string().min(1, "Número é obrigatório"),
+  addressStreet: z.string().optional(),
+  addressNumber: z.string().optional(),
   addressComplement: z.string().optional(),
-  addressNeighborhood: z.string().min(1, "Bairro é obrigatório"),
-  addressCity: z.string().min(1, "Cidade é obrigatória"),
-  addressState: z.string().min(2, "Estado é obrigatório").max(2),
-  addressZip: z.string().min(1, "CEP é obrigatório"),
+  addressNeighborhood: z.string().optional(),
+  addressCity: z.string().optional(),
+  addressState: z.string().max(2).optional(),
+  addressZip: z.string().optional(),
   instagram: z.string().optional(),
   facebook: z.string().optional(),
   tiktok: z.string().optional(),
-  reference1Name: z.string().min(1, "Nome da referência 1 é obrigatório"),
-  reference1Phone: z.string().min(1, "Telefone da referência 1 é obrigatório"),
+  reference1Name: z.string().optional(),
+  reference1Phone: z.string().optional(),
   reference2Name: z.string().optional(),
   reference2Phone: z.string().optional(),
   notes: z.string().optional(),
@@ -66,17 +66,17 @@ const TABS = ["basic", "address", "social", "refs"] as const;
 type Tab = typeof TABS[number];
 
 const TAB_FIELDS_OWNER: Record<Tab, (keyof FormData)[]> = {
-  basic: ["name", "phone", "managerId", "cpf"],
-  address: ["addressStreet", "addressNumber", "addressNeighborhood", "addressCity", "addressState", "addressZip"],
+  basic: ["name", "phone", "managerId"],
+  address: [],
   social: [],
-  refs: ["reference1Name", "reference1Phone"],
+  refs: [],
 };
 
 const TAB_FIELDS_MANAGER: Record<Tab, (keyof FormData)[]> = {
-  basic: ["name", "phone", "cpf"],
-  address: ["addressStreet", "addressNumber", "addressNeighborhood", "addressCity", "addressState", "addressZip"],
+  basic: ["name", "phone"],
+  address: [],
   social: [],
-  refs: ["reference1Name", "reference1Phone"],
+  refs: [],
 };
 
 interface Props {
@@ -177,12 +177,6 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
     if (fields.length > 0) {
       const ok = await trigger(fields);
       if (!ok) return;
-    }
-    if (tab === "social") {
-      if (!instagram?.trim() && !facebook?.trim() && !tiktok?.trim()) {
-        toast.error("Preencha pelo menos uma rede social.");
-        return;
-      }
     }
     setTab(TABS[tabIndex + 1]);
   };
@@ -301,7 +295,7 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
             </TabsContent>
 
             <TabsContent value="social" className="space-y-4">
-              <p className="text-sm text-muted-foreground">Preencha pelo menos uma rede social. *</p>
+              <p className="text-sm text-muted-foreground">Preencha as redes sociais da revendedora (opcional).</p>
               <div className="space-y-4">
                 <div className="space-y-1">
                   <Label>Instagram</Label>
@@ -319,7 +313,7 @@ export function ResellerFormModal({ open, onClose, reseller }: Props) {
             </TabsContent>
 
             <TabsContent value="refs" className="space-y-4">
-              <p className="text-sm text-muted-foreground">Referência 1 é obrigatória.</p>
+              <p className="text-sm text-muted-foreground">Referências são opcionais e podem ser adicionadas depois.</p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label>Referência 1 — Nome *</Label>
