@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(netstat -ano)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(xargs cat *)",
+      "Bash(./gradlew compileJava)"
+    ]
+  }
+}

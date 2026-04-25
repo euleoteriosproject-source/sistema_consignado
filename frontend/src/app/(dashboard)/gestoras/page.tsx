@@ -140,6 +140,7 @@ function TransferDialog({
 }
 
 export default function GestoresPage() {
+  const router = useRouter();
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedManager, setSelectedManager] = useState<Manager | null>(null);
@@ -211,7 +212,7 @@ export default function GestoresPage() {
                 <TableBody>
                   {managers?.map((m) => (
                     <TableRow key={m.id} className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => setSelectedManager(m)}>
+                      onClick={() => router.push(`/gestoras/${m.id}`)}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-1.5">
                           <Users className="h-3.5 w-3.5 text-muted-foreground" />
@@ -274,7 +275,7 @@ export default function GestoresPage() {
         </CardContent>
       </Card>
 
-      <p className="text-xs text-muted-foreground">Clique em um(a) gestor(a) para ver sua equipe</p>
+      <p className="text-xs text-muted-foreground">Clique em um(a) gestor(a) para ver o perfil e transferir revendedoras</p>
 
       <ManagerFormModal open={modalOpen} onClose={() => setModalOpen(false)} />
 

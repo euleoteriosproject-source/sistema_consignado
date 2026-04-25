@@ -26,4 +26,8 @@ export const resellersApi = {
   deleteDocument: (id: string, docId: string) =>
     apiFetch<void>(`/api/v1/resellers/${id}/documents/${docId}`, { method: "DELETE" }),
   completeness: (id: string) => apiFetch<ResellerCompleteness>(`/api/v1/resellers/${id}/completeness`),
+  bulkTransfer: (resellerIds: string[], targetManagerId: string) =>
+    apiFetch<void>("/api/v1/resellers/bulk-transfer", {
+      method: "POST", body: JSON.stringify({ resellerIds, targetManagerId }),
+    }),
 };

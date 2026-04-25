@@ -23,6 +23,7 @@ import com.consignado.api.domain.consignment.Consignment;
 import com.consignado.api.domain.consignment.ConsignmentItemRepository;
 import com.consignado.api.domain.consignment.ConsignmentRepository;
 import com.consignado.api.domain.settlement.SettlementRepository;
+import com.consignado.api.domain.reseller.dto.BulkTransferRequest;
 import com.consignado.api.domain.reseller.dto.ResellerCompletenessResponse;
 import com.consignado.api.domain.reseller.dto.ResellerDocumentResponse;
 import com.consignado.api.domain.reseller.dto.ResellerFilterRequest;
@@ -216,11 +217,33 @@ public class ResellerService {
                 throw new BusinessException(
                     "Cadastro incompleto. Pendências: " + String.join(", ", completeness.missing()));
             }
+            // Verifica se o(a) gestor(a) vinculado está ativo
+            var manager = userRepository.findById(reseller.getManagerId()).orElse(null);
+            if (manager == null || !manager.isActive()) {
+                throw new BusinessException("MANAGER_INACTIVE:" + reseller.getManagerId());
+            }
         }
 
         reseller.setStatus(status.toLowerCase());
         resellerRepository.save(reseller);
         log.info("Reseller status updated id={} status={}", id, status);
+    }
+
+    @Transactional
+    public void bulkTransfer(BulkTransferRequest request) {
+        var tenantId = TenantContext.TENANT_ID.get();
+        userRepository.findById(request.targetManagerId())
+            .filter(u -> u.getTenantId().equals(tenantId) && "manager".equals(u.getRole()) && u.isActive())
+            .orElseThrow(() -> new ResourceNotFoundException("Gestor(a) ativo(a)", request.targetManagerId()));
+
+        var resellers = resellerRepository.findAllById(request.resellerIds()).stream()
+            .filter(r -> r.getTenantId().equals(tenantId) && r.getDeletedAt() == null
+                      && "active".equalsIgnoreCase(r.getStatus()))
+            .toList();
+
+        resellers.forEach(r -> r.setManagerId(request.targetManagerId()));
+        resellerRepository.saveAll(resellers);
+        log.info("Bulk transferred {} resellers to manager={} tenant={}", resellers.size(), request.targetManagerId(), tenantId);
     }
 
     @Transactional(readOnly = true)

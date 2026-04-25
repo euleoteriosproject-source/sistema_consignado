@@ -3,11 +3,14 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { resellersApi } from "@/lib/api/resellers";
+import { settingsApi } from "@/lib/api/settings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Pencil, FileText, CheckCircle, AlertCircle, ToggleLeft, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -45,6 +48,8 @@ export default function ResellerDetailPage() {
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
+  const [inactiveManagerModal, setInactiveManagerModal] = useState(false);
+  const [newManagerId, setNewManagerId] = useState("");
 
   const { data: reseller, isLoading } = useQuery<Reseller>({
     queryKey: ["reseller", id],
@@ -62,6 +67,12 @@ export default function ResellerDetailPage() {
     enabled: !!reseller && reseller.status !== "active",
   });
 
+  const { data: managers } = useQuery({
+    queryKey: ["managers"],
+    queryFn: settingsApi.managers,
+  });
+  const activeManagers = managers?.filter((m) => m.active) ?? [];
+
   const activateMutation = useMutation({
     mutationFn: () => resellersApi.updateStatus(id, "active"),
     onSuccess: () => {
@@ -70,6 +81,28 @@ export default function ResellerDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-alerts"] });
       toast.success("Revendedor(a) ativado(a)!");
+    },
+    onError: (e: Error) => {
+      if (e.message.startsWith("MANAGER_INACTIVE:")) {
+        setInactiveManagerModal(true);
+      } else {
+        toast.error(e.message);
+      }
+    },
+  });
+
+  const changeManagerAndActivate = useMutation({
+    mutationFn: async () => {
+      if (!reseller || !newManagerId) return;
+      await resellersApi.update(id, { ...reseller, managerId: newManagerId });
+      await resellersApi.updateStatus(id, "active");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reseller", id] });
+      queryClient.invalidateQueries({ queryKey: ["resellers"] });
+      toast.success("Gestor(a) atualizado(a) e revendedor(a) ativado(a)!");
+      setInactiveManagerModal(false);
+      setNewManagerId("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -460,6 +493,46 @@ export default function ResellerDetailPage() {
         resellerId={reseller.id}
         resellerName={reseller.name}
       />
+
+      {/* Modal: gestor(a) inativo(a) ao tentar ativar */}
+      <Dialog open={inactiveManagerModal} onOpenChange={(o) => !o && setInactiveManagerModal(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertCircle className="h-4 w-4" />
+              Gestor(a) inativo(a)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-muted-foreground">
+              O(a) gestor(a) atual de <strong>{reseller.name}</strong> está inativo(a).
+              Selecione um(a) gestor(a) ativo(a) para prosseguir com a ativação.
+            </p>
+            <Select value={newManagerId} onValueChange={setNewManagerId}>
+              <SelectTrigger><SelectValue placeholder="Selecione um(a) gestor(a) ativo(a)" /></SelectTrigger>
+              <SelectContent>
+                {activeManagers.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {activeManagers.length === 0 && (
+              <p className="text-xs text-destructive">Não há gestores(as) ativos(as). Ative um(a) gestor(a) primeiro.</p>
+            )}
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setInactiveManagerModal(false)}>Cancelar</Button>
+              <Button
+                className="flex-1"
+                disabled={!newManagerId || changeManagerAndActivate.isPending}
+                onClick={() => changeManagerAndActivate.mutate()}
+              >
+                {changeManagerAndActivate.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                Transferir e ativar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

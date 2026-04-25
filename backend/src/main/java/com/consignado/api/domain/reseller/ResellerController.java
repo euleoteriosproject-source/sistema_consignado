@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.consignado.api.domain.consignment.ConsignmentService;
 import com.consignado.api.domain.consignment.dto.ConsignmentSummaryResponse;
+import com.consignado.api.domain.reseller.dto.BulkTransferRequest;
 import com.consignado.api.domain.reseller.dto.ResellerBalanceResponse;
 import com.consignado.api.domain.reseller.dto.ResellerCompletenessResponse;
 import com.consignado.api.domain.reseller.dto.ResellerDocumentResponse;
@@ -85,6 +86,12 @@ public class ResellerController {
         @Valid @RequestBody UpdateStatusRequest request
     ) {
         resellerService.updateStatus(id, request.status());
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/bulk-transfer")
+    public ResponseEntity<ApiResponse<Void>> bulkTransfer(@Valid @RequestBody BulkTransferRequest request) {
+        resellerService.bulkTransfer(request);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
