@@ -107,7 +107,7 @@ export default function AdminTenantsPage() {
                     <th className="text-left px-4 py-3 font-medium">Nome</th>
                     <th className="text-left px-4 py-3 font-medium">Slug</th>
                     <th className="text-left px-4 py-3 font-medium">Plano</th>
-                    <th className="text-left px-4 py-3 font-medium">Gestoras</th>
+                    <th className="text-left px-4 py-3 font-medium">Gestores</th>
                     <th className="text-left px-4 py-3 font-medium">Status</th>
                     <th className="text-left px-4 py-3 font-medium">Criado em</th>
                     <th />

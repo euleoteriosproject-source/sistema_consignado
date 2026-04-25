@@ -54,7 +54,7 @@ export function ExtratoModal({ consignmentId, onClose }: Props) {
     ? { name: s?.name ?? "Proprietário(a)", role: "Proprietário(a) — consignou" }
     : { name: c?.managerName ?? "", role: "Responsável pelo lote" };
   const sigRight = isStock
-    ? { name: c?.managerName ?? "", role: "Gestora — recebido" }
+    ? { name: c?.managerName ?? "", role: "Gestor(a) — recebeu" }
     : { name: c?.resellerName ?? "", role: "Revendedora — recebido" };
 
   function handlePrint() {

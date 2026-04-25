@@ -34,7 +34,7 @@ function ConsignadosPageInner() {
   const isOwner = role === "owner";
 
   // Filtro de gestora persiste na URL (?gestora=ID) para o botão Voltar funcionar
-  const selectedManagerId = searchParams.get("gestora");
+  const selectedManagerId = searchParams.get("gestor");
 
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(0);
@@ -66,7 +66,7 @@ function ConsignadosPageInner() {
 
   function selectGestora(id: string) {
     setPage(0);
-    router.push(`${pathname}?gestora=${id}`);
+    router.push(`${pathname}?gestor=${id}`);
   }
 
   function clearGestora() {
@@ -115,7 +115,7 @@ function ConsignadosPageInner() {
               </div>
               <div>
                 <p className="font-medium text-sm">{m.name}</p>
-                <p className="text-xs text-muted-foreground">Ver lotes desta gestora</p>
+                <p className="text-xs text-muted-foreground">Ver lotes deste(a) gestor(a)</p>
               </div>
             </button>
           ))}
@@ -127,7 +127,7 @@ function ConsignadosPageInner() {
           {selectedManagerId && (
             <Button variant="ghost" size="sm" onClick={clearGestora}>
               <ChevronLeft className="h-4 w-4 mr-1" />
-              {selectedManager?.name ?? "Gestora"}
+              {selectedManager?.name ?? "Gestor(a)"}
             </Button>
           )}
           <Select value={status} onValueChange={(v) => { setStatus(v); setPage(0); }}>

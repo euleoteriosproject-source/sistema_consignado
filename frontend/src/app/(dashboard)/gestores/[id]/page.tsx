@@ -17,7 +17,7 @@ import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import type { PageResponse, ResellerSummary } from "@/types";
 
-export default function GestoraDetailPage() {
+export default function GestorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();

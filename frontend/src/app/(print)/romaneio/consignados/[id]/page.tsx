@@ -122,7 +122,7 @@ export default function RomaneioPrintPage() {
             <span>{consignment.resellerName}</span>
           </div>
           <div className="info-block">
-            <label>Gestora</label>
+            <label>Gestor(a)</label>
             <span>{consignment.managerName}</span>
           </div>
           <div className="info-block">

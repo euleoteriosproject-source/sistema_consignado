@@ -9,7 +9,7 @@ import { useAuthStore } from "@/stores/authStore";
 
 const ownerNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/gestoras", label: "Gestores(as)", icon: UserCog },
+  { href: "/gestores", label: "Gestores", icon: UserCog },
   { href: "/revendedoras", label: "Revendedoras", icon: Users },
   { href: "/produtos", label: "Produtos", icon: Package },
   { href: "/consignados", label: "Consignados", icon: ShoppingBag },

@@ -134,7 +134,7 @@ export function ConsignmentFormModal({ open, onClose, onCreated }: Props) {
                 className="flex-1"
                 onClick={() => { setMode("manager_stock"); setResellerId(""); }}
               >
-                <Package className="h-4 w-4 mr-1" /> Estoque da gestora
+                <Package className="h-4 w-4 mr-1" /> Estoque do(a) gestor(a)
               </Button>
             </div>
           )}
@@ -142,9 +142,9 @@ export function ConsignmentFormModal({ open, onClose, onCreated }: Props) {
           <div className="grid grid-cols-2 gap-4">
             {isOwner && (
               <div className="col-span-2 space-y-1">
-                <Label>Gestora responsável</Label>
+                <Label>Gestor(a) responsável</Label>
                 <Select value={effectiveManagerId} onValueChange={(v) => { setSelectedManagerId(v); setResellerId(""); }}>
-                  <SelectTrigger><SelectValue placeholder="Todas as gestoras" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Selecione um(a) gestor(a)" /></SelectTrigger>
                   <SelectContent>
                     {managers?.filter(m => m.active).map((m) => (
                       <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
